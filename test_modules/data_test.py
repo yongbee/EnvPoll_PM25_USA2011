@@ -8,6 +8,20 @@ def _create_tags(tag_num):
     rest_tags = [f'tag{x}' for x in range(tag_num-2)]
     return first_tags + rest_tags
 
+def _plot_train_test(cluster_train_test, cluster_id):
+    set_dt = cluster_train_test[cluster_id]
+    train_in = set_dt['train_in_cluster']
+    train_out = set_dt['train_out_cluster']
+    test_dt = set_dt['test_cluster']
+    plt.scatter(train_out['x'], train_out['y'], 3, 'b', label='out-of-cluster train data')
+    plt.scatter(test_dt['x'], test_dt['y'], 3, 'r', label='test data')
+    plt.scatter(train_in['x'], train_in['y'], 5, 'g', label='in-cluster train data')
+    plt.legend()
+    # plt.show()
+    plt.savefig(f'figures/cluster{cluster_id} train-test set')
+    plt.cla()
+    plt.clf()
+
 if __name__=='__main__':
     data_path = 'v10_170713_5x5_include_na_dataset.npz'
     label_path = "v10_170713_5x5_include_na_label.npz"
@@ -15,6 +29,10 @@ if __name__=='__main__':
     y_tr_blended = np.load(label_path)['arr_0']
     tag_names = _create_tags(28)
     multi_grid = MultipleGrid(5, "KMeans")
-    whole_cluster, coor_cluster = multi_grid.split_train_test(tag_names, x_tr_blended, pd.Series(y_tr_blended))
-    plt.scatter(coor_cluster['x'], coor_cluster['y'], 3, coor_cluster['cluster id'])
-    plt.show()
+    whole_cluster, coor_cluster = multi_grid.cluster_grids(tag_names, x_tr_blended, pd.Series(y_tr_blended))
+    # plt.scatter(coor_cluster['x'], coor_cluster['y'], 3, coor_cluster['cluster id'])
+    # plt.show()
+    cluster_train_test = multi_grid.split_train_validation(tag_names, x_tr_blended, whole_cluster)
+    for i in cluster_train_test.keys():
+        _plot_train_test(cluster_train_test, i)
+
