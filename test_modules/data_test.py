@@ -8,6 +8,12 @@ def _create_tags(tag_num):
     rest_tags = [f'tag{x}' for x in range(tag_num-2)]
     return first_tags + rest_tags
 
+def _plot_grid_clusters(coor_cluster):
+    plt.scatter(coor_cluster['x'], coor_cluster['y'], 3, coor_cluster['cluster id'])
+    plt.savefig('figures/coordinate cluster')
+    plt.cla()
+    plt.clf()
+
 def _plot_train_test(cluster_train_test, cluster_id):
     set_dt = cluster_train_test[cluster_id]
     train_in = set_dt['train_in_cluster']
@@ -17,7 +23,6 @@ def _plot_train_test(cluster_train_test, cluster_id):
     plt.scatter(test_dt['x'], test_dt['y'], 3, 'r', label='test data')
     plt.scatter(train_in['x'], train_in['y'], 5, 'g', label='in-cluster train data')
     plt.legend()
-    # plt.show()
     plt.savefig(f'figures/cluster{cluster_id} train-test set')
     plt.cla()
     plt.clf()
@@ -30,9 +35,7 @@ if __name__=='__main__':
     tag_names = _create_tags(28)
     multi_grid = MultipleGrid(5, "KMeans")
     whole_cluster, coor_cluster = multi_grid.cluster_grids(tag_names, x_tr_blended, pd.Series(y_tr_blended))
-    # plt.scatter(coor_cluster['x'], coor_cluster['y'], 3, coor_cluster['cluster id'])
-    # plt.show()
-    cluster_train_test = multi_grid.split_train_validation(tag_names, x_tr_blended, whole_cluster)
-    for i in cluster_train_test.keys():
-        _plot_train_test(cluster_train_test, i)
-
+    _plot_grid_clusters(coor_cluster)
+    train_test_grids, train_test_data = multi_grid.split_train_test(tag_names, x_tr_blended, whole_cluster)
+    for i in train_test_grids.keys():
+        _plot_train_test(train_test_grids, i)

@@ -31,11 +31,10 @@ def _split_in_cluster(coordinates: pd.DataFrame):
         raise Exception("'y' must be in the input coordinate columns.")
 
     _, coor_nums = np.unique(coordinates, axis=0, return_counts=True)
-    unique_coors = coordinates.drop_duplicates().sort_values(by="x")
-    large_num_coors = unique_coors[coor_nums>=np.percentile(coor_nums,60)]
+    large_num_coors = coordinates[coor_nums>=np.percentile(coor_nums,60)]
     train_idx = np.random.choice(large_num_coors.index, size=len(coor_nums)//10)
-    train_coors = unique_coors.loc[train_idx]
-    test_coors = unique_coors.drop(train_idx)
+    train_coors = coordinates.loc[train_idx]
+    test_coors = coordinates.drop(train_idx)
     return train_coors, test_coors
 
 def _split_train_test(xy_cluster: pd.DataFrame):
@@ -43,17 +42,23 @@ def _split_train_test(xy_cluster: pd.DataFrame):
         raise Exception("xy_cluster data is not pd.DataFrame.")
 
     np.random.seed(1000)
-    all_split_sets = {}
-    for cluster in np.sort(pd.unique(xy_cluster["cluster id"])):
-        cluster_xy = xy_cluster.loc[xy_cluster["cluster id"]==cluster, ["x","y"]]
-        out_cluster_xy = xy_cluster.loc[xy_cluster["cluster id"]!=cluster, ["x","y"]]
+    unique_xy_cluster = xy_cluster.drop_duplicates()
+    all_split_grids, all_split_dataset = {}, {}
+    for cluster in np.sort(pd.unique(unique_xy_cluster["cluster id"])):
+        cluster_xy = unique_xy_cluster.loc[unique_xy_cluster["cluster id"]==cluster, ["x","y"]]
+        out_cluster_xy = unique_xy_cluster.loc[unique_xy_cluster["cluster id"]!=cluster, ["x","y"]].drop_duplicates()
         cluster_train, cluster_test = _split_in_cluster(cluster_xy)
-        all_split_sets[cluster] = {
+        all_split_grids[cluster] = {
             "train_in_cluster":cluster_train,
             "train_out_cluster":out_cluster_xy,
             "test_cluster":cluster_test
         }
-    return all_split_sets
+        all_split_dataset[cluster] = {
+            "train_in_cluster":xy_cluster.loc[np.isin(xy_cluster[["x","y"]], cluster_train).min(axis=1)],
+            "train_out_cluster":xy_cluster.loc[np.isin(xy_cluster[["x","y"]], out_cluster_xy).min(axis=1)],
+            "test_cluster":xy_cluster.loc[np.isin(xy_cluster[["x","y"]], cluster_test).min(axis=1)]
+        }
+    return all_split_grids, all_split_dataset
 
 class SingleGrid:
     def __init__(self, cluster_method="GaussianMixture", cluster_num=10):
@@ -74,7 +79,7 @@ class SingleGrid:
 
         return _cluster_coords(input_dt[["x", "y"]], self.cluster_method, self.cluster_num)
 
-    def split_train_validation(self, input_dt: pd.DataFrame, whole_cluster: pd.DataFrame):
+    def split_train_test(self, input_dt: pd.DataFrame, whole_cluster: pd.DataFrame):
         if type(input_dt) is not pd.DataFrame:
             raise Exception("Input data type is not pd.DataFrame.")
         if type(whole_cluster) is not pd.DataFrame:
@@ -112,7 +117,7 @@ class MultipleGrid(SingleGrid):
         center_frame = pd.DataFrame(center_dt, columns=tag_names, index=target_dt.index)
         return super().cluster_grids(center_frame, target_dt)
 
-    def split_train_validation(self, tag_names: list, input_dt: np.ndarray, whole_cluster: pd.DataFrame):
+    def split_train_test(self, tag_names: list, input_dt: np.ndarray, whole_cluster: pd.DataFrame):
         if type(input_dt) is not np.ndarray:
             raise Exception("Input data type is not np.array.")
         if input_dt.shape[1] != (len(tag_names)*(self.grid_scale**2)):
@@ -122,4 +127,5 @@ class MultipleGrid(SingleGrid):
 
         center_dt = self.extract_center_data(tag_names, input_dt)
         center_frame = pd.DataFrame(center_dt, columns=tag_names, index=whole_cluster.index)
-        return super().split_train_validation(center_frame, whole_cluster)
+        return super().split_train_test(center_frame, whole_cluster)
+
