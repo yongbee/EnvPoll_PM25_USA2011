@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from data.spatial import MultipleGrid
+from data_process.spatial_validation import MultipleGrid
 
 def _create_tags(tag_num):
     first_tags = ['x', 'y']
@@ -36,6 +36,6 @@ if __name__=='__main__':
     multi_grid = MultipleGrid(5, "KMeans")
     whole_cluster, coor_cluster = multi_grid.cluster_grids(tag_names, x_tr_blended, pd.Series(y_tr_blended))
     _plot_grid_clusters(coor_cluster)
-    train_test_grids, train_test_data = multi_grid.split_train_test(tag_names, x_tr_blended, whole_cluster)
+    train_test_grids, train_test_data_id = multi_grid.split_train_test(tag_names, x_tr_blended, whole_cluster)
     for i in train_test_grids.keys():
         _plot_train_test(train_test_grids, i)

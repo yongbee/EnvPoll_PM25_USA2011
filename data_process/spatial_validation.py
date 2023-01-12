@@ -43,7 +43,7 @@ def _split_train_test(xy_cluster: pd.DataFrame):
 
     np.random.seed(1000)
     unique_xy_cluster = xy_cluster.drop_duplicates()
-    all_split_grids, all_split_dataset = {}, {}
+    all_split_grids, all_split_data_id = {}, {}
     for cluster in np.sort(pd.unique(unique_xy_cluster["cluster id"])):
         cluster_xy = unique_xy_cluster.loc[unique_xy_cluster["cluster id"]==cluster, ["x","y"]]
         out_cluster_xy = unique_xy_cluster.loc[unique_xy_cluster["cluster id"]!=cluster, ["x","y"]].drop_duplicates()
@@ -53,12 +53,12 @@ def _split_train_test(xy_cluster: pd.DataFrame):
             "train_out_cluster":out_cluster_xy,
             "test_cluster":cluster_test
         }
-        all_split_dataset[cluster] = {
-            "train_in_cluster":xy_cluster.loc[np.isin(xy_cluster[["x","y"]], cluster_train).min(axis=1)],
-            "train_out_cluster":xy_cluster.loc[np.isin(xy_cluster[["x","y"]], out_cluster_xy).min(axis=1)],
-            "test_cluster":xy_cluster.loc[np.isin(xy_cluster[["x","y"]], cluster_test).min(axis=1)]
+        all_split_data_id[cluster] = {
+            "train_in_cluster":xy_cluster.index[np.isin(xy_cluster[["x","y"]], cluster_train).min(axis=1)],
+            "train_out_cluster":xy_cluster.index[np.isin(xy_cluster[["x","y"]], out_cluster_xy).min(axis=1)],
+            "test_cluster":xy_cluster.index[np.isin(xy_cluster[["x","y"]], cluster_test).min(axis=1)]
         }
-    return all_split_grids, all_split_dataset
+    return all_split_grids, all_split_data_id
 
 class SingleGrid:
     def __init__(self, cluster_method="GaussianMixture", cluster_num=10):
