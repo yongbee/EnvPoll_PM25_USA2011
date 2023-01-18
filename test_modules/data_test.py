@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from data_process.spatial_validation import MultipleGrid
 
 def _create_tags(tag_num):
-    first_tags = ['x', 'y']
+    first_tags = ['cmaq_x', 'cmaq_y']
     rest_tags = [f'tag{x}' for x in range(tag_num-2)]
     return first_tags + rest_tags
 

@@ -4,10 +4,10 @@ from sklearn.mixture import GaussianMixture
 from sklearn.cluster import KMeans
 
 def _cluster_coords(coordinates: pd.DataFrame, method: str, n_clusters: int):
-    if "x" not in coordinates.columns:
-        raise Exception("'x' must be in the input coordinate columns.")
-    if "y" not in coordinates.columns:
-        raise Exception("'y' must be in the input coordinate columns.")
+    if "cmaq_x" not in coordinates.columns:
+        raise Exception("'cmaq_x' must be in the input coordinate columns.")
+    if "cmaq_y" not in coordinates.columns:
+        raise Exception("'cmaq_y' must be in the input coordinate columns.")
     if method not in ["GaussianMixture", "KMeans"]:
         raise Exception("Inappropriate method.")
 
@@ -25,10 +25,10 @@ def _cluster_coords(coordinates: pd.DataFrame, method: str, n_clusters: int):
     return whole_df, coor_clusters
     
 def _split_in_cluster(coordinates: pd.DataFrame):
-    if "x" not in coordinates.columns:
-        raise Exception("'x' must be in the input coordinate columns.")
-    if "y" not in coordinates.columns:
-        raise Exception("'y' must be in the input coordinate columns.")
+    if "cmaq_x" not in coordinates.columns:
+        raise Exception("'cmaq_x' must be in the input coordinate columns.")
+    if "cmaq_y" not in coordinates.columns:
+        raise Exception("'cmaq_y' must be in the input coordinate columns.")
 
     _, coor_nums = np.unique(coordinates, axis=0, return_counts=True)
     large_num_coors = coordinates[coor_nums>=np.percentile(coor_nums,60)]
@@ -45,8 +45,8 @@ def _split_train_test(xy_cluster: pd.DataFrame):
     unique_xy_cluster = xy_cluster.drop_duplicates()
     all_split_grids, all_split_data_id = {}, {}
     for cluster in np.sort(pd.unique(unique_xy_cluster["cluster id"])):
-        cluster_xy = unique_xy_cluster.loc[unique_xy_cluster["cluster id"]==cluster, ["x","y"]]
-        out_cluster_xy = unique_xy_cluster.loc[unique_xy_cluster["cluster id"]!=cluster, ["x","y"]].drop_duplicates()
+        cluster_xy = unique_xy_cluster.loc[unique_xy_cluster["cluster id"]==cluster, ["cmaq_x","cmaq_y"]]
+        out_cluster_xy = unique_xy_cluster.loc[unique_xy_cluster["cluster id"]!=cluster, ["cmaq_x","cmaq_y"]].drop_duplicates()
         cluster_train, cluster_test = _split_in_cluster(cluster_xy)
         all_split_grids[cluster] = {
             "train_in_cluster":cluster_train,
@@ -54,9 +54,9 @@ def _split_train_test(xy_cluster: pd.DataFrame):
             "test_cluster":cluster_test
         }
         all_split_data_id[cluster] = {
-            "train_in_cluster":xy_cluster.index[np.isin(xy_cluster[["x","y"]], cluster_train).min(axis=1)],
-            "train_out_cluster":xy_cluster.index[np.isin(xy_cluster[["x","y"]], out_cluster_xy).min(axis=1)],
-            "test_cluster":xy_cluster.index[np.isin(xy_cluster[["x","y"]], cluster_test).min(axis=1)]
+            "train_in_cluster":xy_cluster.index[np.isin(xy_cluster[["cmaq_x","cmaq_y"]], cluster_train).min(axis=1)],
+            "train_out_cluster":xy_cluster.index[np.isin(xy_cluster[["cmaq_x","cmaq_y"]], out_cluster_xy).min(axis=1)],
+            "test_cluster":xy_cluster.index[np.isin(xy_cluster[["cmaq_x","cmaq_y"]], cluster_test).min(axis=1)]
         }
     return all_split_grids, all_split_data_id
 
@@ -72,12 +72,12 @@ class SingleGrid:
             raise Exception("Target data type is not pd.Series.")
         if not input_dt.index.equals(target_dt.index):
             raise Exception("Input and Output indexes are not equal.")
-        if "x" not in input_dt.columns:
-            raise Exception("'x' must be in the input data columns.")
-        if "y" not in input_dt.columns:
-            raise Exception("'y' must be in the input data columns.")
+        if "cmaq_x" not in input_dt.columns:
+            raise Exception("'cmaq_x' must be in the input data columns.")
+        if "cmaq_y" not in input_dt.columns:
+            raise Exception("'cmaq_y' must be in the input data columns.")
 
-        return _cluster_coords(input_dt[["x", "y"]], self.cluster_method, self.cluster_num)
+        return _cluster_coords(input_dt[["cmaq_x", "cmaq_y"]], self.cluster_method, self.cluster_num)
 
     def split_train_test(self, input_dt: pd.DataFrame, whole_cluster: pd.DataFrame):
         if type(input_dt) is not pd.DataFrame:
@@ -85,7 +85,7 @@ class SingleGrid:
         if type(whole_cluster) is not pd.DataFrame:
             raise Exception("Whole Cluster data type is not pd.DataFrame.")
 
-        xy_cluster = input_dt[["x", "y"]].join(whole_cluster)
+        xy_cluster = input_dt[["cmaq_x", "cmaq_y"]].join(whole_cluster)
         return _split_train_test(xy_cluster)
         
 class MultipleGrid(SingleGrid):
