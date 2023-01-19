@@ -23,7 +23,7 @@ def _cluster_coords(coordinates: pd.DataFrame, method: str, n_clusters: int):
     coor_clusters["cluster id"] = coor_pred
     whole_df = pd.DataFrame(whole_pred, index=coordinates.index, columns=["cluster id"])
     return whole_df, coor_clusters
-    
+
 def _split_in_cluster(coordinates: pd.DataFrame):
     if "cmaq_x" not in coordinates.columns:
         raise Exception("'cmaq_x' must be in the input coordinate columns.")
@@ -87,7 +87,7 @@ class SingleGrid:
 
         xy_cluster = input_dt[["cmaq_x", "cmaq_y"]].join(whole_cluster)
         return _split_train_test(xy_cluster)
-        
+
 class MultipleGrid(SingleGrid):
     def __init__(self, grid_scale, cluster_method="GaussianMixture", cluster_num=10):
         super().__init__(cluster_method, cluster_num)
@@ -98,7 +98,7 @@ class MultipleGrid(SingleGrid):
             raise Exception("Input data type is not np.array.")
         if input_dt.shape[1] != (len(tag_names)*(self.grid_scale**2)):
             raise Exception("Input data column number is inappropriate.")
-            
+
         center_cell_id = (self.grid_scale**2)//2
         center_dt = input_dt[:,center_cell_id*len(tag_names):(center_cell_id+1)*len(tag_names)]
         return center_dt
@@ -129,3 +129,12 @@ class MultipleGrid(SingleGrid):
         center_frame = pd.DataFrame(center_dt, columns=tag_names, index=whole_cluster.index)
         return super().split_train_test(center_frame, whole_cluster)
 
+    def generate_grid(self, index_list: list, whole_grid: np.ndarray):
+        if type(whole_grid) is not np.ndarray:
+            raise Exception("Grid data type is not np.array.")
+        if whole_grid.shape[1] != (len(tag_names)*(self.grid_scale**2)):
+            raise Exception("Grid data column number is inappropriate.")
+
+        axis_val = 0
+        new_grid = np.take(whole_grid, index_list, axis_val)
+        return new_grid
