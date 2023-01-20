@@ -9,7 +9,7 @@ def _create_tags(tag_num):
     return first_tags + rest_tags
 
 def _plot_grid_clusters(coor_cluster):
-    plt.scatter(coor_cluster['x'], coor_cluster['y'], 3, coor_cluster['cluster id'])
+    plt.scatter(coor_cluster['cmaq_x'], coor_cluster['cmaq_y'], 3, coor_cluster['cluster id'])
     plt.savefig('figures/coordinate cluster')
     plt.cla()
     plt.clf()

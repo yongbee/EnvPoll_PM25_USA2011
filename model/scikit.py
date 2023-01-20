@@ -45,11 +45,7 @@ class TrainTest:
                 train_dt, test_dt = _normalize_train_test(train_dt, test_dt)
             self.model.fit(train_dt, train_label)
             test_pred = self.model.predict(test_dt)
-            all_pred_info[cluster_id] = {
-                "coor":test_dt[["cmaq_x", "cmaq_y"]],
-                "pred":test_pred,
-                "label":test_label
-            }
+            all_pred_info[f"cluster{cluster_id}"] = test_pred
             r2_val = round(r2_score(test_label, test_pred), 4)
             print(f"R-squared: {r2_val}")
         return all_pred_info
