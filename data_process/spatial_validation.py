@@ -30,11 +30,12 @@ def _split_in_cluster(coordinates: pd.DataFrame):
     if "cmaq_y" not in coordinates.columns:
         raise Exception("'cmaq_y' must be in the input coordinate columns.")
 
-    _, coor_nums = np.unique(coordinates, axis=0, return_counts=True)
-    large_num_coors = coordinates[coor_nums>=np.percentile(coor_nums,60)]
+    unique_coors, coor_nums = np.unique(coordinates, axis=0, return_counts=True)
+    unique_coors = pd.DataFrame(unique_coors, columns=coordinates.columns)
+    large_num_coors = unique_coors[coor_nums>=np.percentile(coor_nums,60)]
     train_idx = np.random.choice(large_num_coors.index, size=len(coor_nums)//10)
-    train_coors = coordinates.loc[train_idx]
-    test_coors = coordinates.drop(train_idx)
+    train_coors =  unique_coors.loc[train_idx]
+    test_coors =  unique_coors.drop(train_idx)
     return train_coors, test_coors
 
 def _split_train_test(xy_cluster: pd.DataFrame):
@@ -45,7 +46,7 @@ def _split_train_test(xy_cluster: pd.DataFrame):
     unique_xy_cluster = xy_cluster.drop_duplicates()
     all_split_grids, all_split_data_id = {}, {}
     for cluster in np.sort(pd.unique(unique_xy_cluster["cluster id"])):
-        cluster_xy = unique_xy_cluster.loc[unique_xy_cluster["cluster id"]==cluster, ["cmaq_x","cmaq_y"]]
+        cluster_xy = xy_cluster.loc[xy_cluster["cluster id"]==cluster, ["cmaq_x","cmaq_y"]]
         out_cluster_xy = unique_xy_cluster.loc[unique_xy_cluster["cluster id"]!=cluster, ["cmaq_x","cmaq_y"]].drop_duplicates()
         cluster_train, cluster_test = _split_in_cluster(cluster_xy)
         all_split_grids[cluster] = {
