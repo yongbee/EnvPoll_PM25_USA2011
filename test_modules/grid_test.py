@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from scipy.spatial import distance_matrix
 import matplotlib.pyplot as plt
+from data_process.compose import MultiGridCompose
 
 def create_distance_matrix(dt1, dt2):
     all_distance = distance_matrix(dt1, dt2)
@@ -107,7 +108,7 @@ def allocate_grids_data(whole_data, grids_cmaq, monitoring_data, monitoring_coor
     all_dates = monitoring_data[['day', 'month']].drop_duplicates()
 
     all_grid_data = []
-    for date_id in range(len(all_dates[:3])):
+    for date_id in range(len(all_dates)):
         date = all_dates.iloc[date_id]
         date_whole_data = whole_data.loc[np.all(whole_data[['day', 'month']]==date, axis=1)]
         date_monitoring_data = monitoring_data.loc[np.all(monitoring_data[['day', 'month']]==date, axis=1)]
@@ -128,24 +129,28 @@ def allocate_grids_data(whole_data, grids_cmaq, monitoring_data, monitoring_coor
     all_grid_data = np.vstack(all_grid_data)
     return all_grid_data
 
+def _save_multi_grid(all_cmaq_grids: np.ndarray, grid_left: int, grid_right: int):
+    grid_size = grid_left + grid_right + 1
+    np.save(f"data/grid{grid_size}_cmaq_id", all_cmaq_grids)
+
 if __name__ == '__main__':
-    # whole_data = pd.read_csv("data/largeUS_pred.csv.gz", compression='gzip', index_col=0)
-    # whole_data = whole_data[['day', 'month', 'cmaq_x', 'cmaq_y', 'cmaq_id', 'rid', 'elev', 'forest_cover', 'pd', 'local', 'limi', 'high', 'is', 'nldas_pevapsfc',
-    #              'nldas_pressfc', 'nldas_cape', 'nldas_ugrd10m', 'nldas_vgrd10m', 'nldas_tmp2m', 'nldas_rh2m', 'nldas_dlwrfsfc', 'nldas_dswrfsfc',
-    #              'nldas_pcpsfc', 'nldas_fpcsfc', 'gc_aod', 'aod_value', 'emissi11_pm25', 'pm25_value_k', 'pm25_value']] 
+    small_set_test = True
+    columns = ['day', 'month', 'cmaq_x', 'cmaq_y', 'cmaq_id', 'rid', 'elev', 'forest_cover', 'pd', 'local', 'limi', 'high', 'is', 
+    'nldas_pevapsfc','nldas_pressfc', 'nldas_cape', 'nldas_ugrd10m', 'nldas_vgrd10m', 'nldas_tmp2m', 'nldas_rh2m', 'nldas_dlwrfsfc', 
+    'nldas_dswrfsfc', 'nldas_pcpsfc', 'nldas_fpcsfc', 'gc_aod', 'aod_value', 'emissi11_pm25', 'pm25_value_k', 'pm25_value']
 
     coord_whole_data = pd.read_csv("data/largeUS_coords_pred.csv", index_col=0)
     monitoring_whole_data = pd.read_csv("data/us_monitoring.csv")
     coord_data = coord_whole_data.drop_duplicates().reset_index(drop=True)
     monitoring_coord = monitoring_whole_data[["cmaq_x", "cmaq_y", "cmaq_id"]].drop_duplicates().reset_index(drop=True)
+    left_grids, right_grids = 31, 32
 
-    # longest_dist = find_dist_threshold(coord_data)
-    longest_dist = 12027.6788814268
-    monitoring_coord = monitoring_coord.loc[np.isin(monitoring_coord["cmaq_id"], coord_data["cmaq_id"])]
-    # plot_map(coord_data, monitoring_coord)
-    # plot_grid_dataset(coord_data, monitoring_coord, longest_dist, 31, 32)
-    # plot_grid_allocation(coord_data, monitoring_coord, longest_dist, 31, 32)
-    # save_multi_grid(coord_data, monitoring_coord, longest_dist, 31, 32)
-
-    all_cmaq_grids = np.load("data/grid64_cmaq_id.npy")
-    allocate_grids_data(monitoring_whole_data, all_cmaq_grids, monitoring_whole_data, monitoring_coord)
+    multi_compose = MultiGridCompose(coord_data, monitoring_coord)
+    all_cmaq_grids = multi_compose.compose_multi_grid(left_grids, right_grids)
+    _save_multi_grid(all_cmaq_grids, left_grids, right_grids)
+    if small_set_test:
+        all_multigrid_dataset = multi_compose.allocate_grids_data(monitoring_whole_data[columns], all_cmaq_grids, monitoring_whole_data[columns])
+    else:
+        whole_data = pd.read_csv("data/largeUS_pred.csv.gz", compression='gzip', index_col=0)
+        all_multigrid_dataset = multi_compose.allocate_grids_data(whole_data[columns], all_cmaq_grids, monitoring_whole_data[columns])
+    a=3

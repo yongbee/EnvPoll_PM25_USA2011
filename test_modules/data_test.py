@@ -33,6 +33,7 @@ if __name__=='__main__':
     x_tr_blended = np.load(data_path)['arr_0']
     y_tr_blended = np.load(label_path)['arr_0']
     tag_names = _create_tags(28)
+    
     multi_grid = MultipleGrid(5, "KMeans")
     whole_cluster, coor_cluster = multi_grid.cluster_grids(tag_names, x_tr_blended, pd.Series(y_tr_blended))
     _plot_grid_clusters(coor_cluster)

@@ -61,6 +61,16 @@ def _split_train_test(xy_cluster: pd.DataFrame):
         }
     return all_split_grids, all_split_data_id
 
+def extract_center_data(tag_names: list, input_dt: np.ndarray, grid_scale: int):
+    if type(input_dt) is not np.ndarray:
+        raise Exception("Input data type is not np.array.")
+    if input_dt.shape[1] != (len(tag_names)*(grid_scale**2)):
+        raise Exception("Input data column number is inappropriate.")
+        
+    center_cell_id = (grid_scale**2)//2
+    center_dt = input_dt[:,center_cell_id*len(tag_names):(center_cell_id+1)*len(tag_names)]
+    return center_dt
+
 class SingleGrid:
     def __init__(self, cluster_method="GaussianMixture", cluster_num=10):
         self.cluster_num = cluster_num
@@ -94,16 +104,6 @@ class MultipleGrid(SingleGrid):
         super().__init__(cluster_method, cluster_num)
         self.grid_scale = grid_scale
 
-    def extract_center_data(self, tag_names: list, input_dt: np.ndarray):
-        if type(input_dt) is not np.ndarray:
-            raise Exception("Input data type is not np.array.")
-        if input_dt.shape[1] != (len(tag_names)*(self.grid_scale**2)):
-            raise Exception("Input data column number is inappropriate.")
-            
-        center_cell_id = (self.grid_scale**2)//2
-        center_dt = input_dt[:,center_cell_id*len(tag_names):(center_cell_id+1)*len(tag_names)]
-        return center_dt
-
     def cluster_grids(self, tag_names: list, input_dt: np.ndarray, target_dt: pd.Series):
         if type(input_dt) is not np.ndarray:
             raise Exception("Input data type is not np.array.")
@@ -114,7 +114,7 @@ class MultipleGrid(SingleGrid):
         if len(input_dt) != len(target_dt):
             raise Exception("The length of input data and target data are not equal.")
 
-        center_dt = self.extract_center_data(tag_names, input_dt)
+        center_dt = extract_center_data(tag_names, input_dt, self.grid_scale)
         center_frame = pd.DataFrame(center_dt, columns=tag_names, index=target_dt.index)
         return super().cluster_grids(center_frame, target_dt)
 
@@ -126,7 +126,7 @@ class MultipleGrid(SingleGrid):
         if type(whole_cluster) is not pd.DataFrame:
             raise Exception("Whole Cluster data type is not pd.DataFrame.")
 
-        center_dt = self.extract_center_data(tag_names, input_dt)
+        center_dt = extract_center_data(tag_names, input_dt, self.grid_scale)
         center_frame = pd.DataFrame(center_dt, columns=tag_names, index=whole_cluster.index)
         return super().split_train_test(center_frame, whole_cluster)
 
