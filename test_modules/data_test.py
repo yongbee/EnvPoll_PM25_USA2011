@@ -9,7 +9,7 @@ def _create_tags(tag_num):
     return first_tags + rest_tags
 
 def _plot_grid_clusters(coor_cluster):
-    plt.scatter(coor_cluster['x'], coor_cluster['y'], 3, coor_cluster['cluster id'])
+    plt.scatter(coor_cluster['cmaq_x'], coor_cluster['cmaq_y'], 3, coor_cluster['cluster id'])
     plt.savefig('figures/coordinate cluster')
     plt.cla()
     plt.clf()
@@ -19,9 +19,9 @@ def _plot_train_test(cluster_train_test, cluster_id):
     train_in = set_dt['train_in_cluster']
     train_out = set_dt['train_out_cluster']
     test_dt = set_dt['test_cluster']
-    plt.scatter(train_out['x'], train_out['y'], 3, 'b', label='out-of-cluster train data')
-    plt.scatter(test_dt['x'], test_dt['y'], 3, 'r', label='test data')
-    plt.scatter(train_in['x'], train_in['y'], 5, 'g', label='in-cluster train data')
+    plt.scatter(train_out['cmaq_x'], train_out['cmaq_y'], 3, 'b', label='out-of-cluster train data')
+    plt.scatter(test_dt['cmaq_x'], test_dt['cmaq_y'], 3, 'r', label='test data')
+    plt.scatter(train_in['cmaq_x'], train_in['cmaq_y'], 5, 'g', label='in-cluster train data')
     plt.legend()
     plt.savefig(f'figures/cluster{cluster_id} train-test set')
     plt.cla()
@@ -33,6 +33,7 @@ if __name__=='__main__':
     x_tr_blended = np.load(data_path)['arr_0']
     y_tr_blended = np.load(label_path)['arr_0']
     tag_names = _create_tags(28)
+    
     multi_grid = MultipleGrid(5, "KMeans")
     whole_cluster, coor_cluster = multi_grid.cluster_grids(tag_names, x_tr_blended, pd.Series(y_tr_blended))
     _plot_grid_clusters(coor_cluster)
