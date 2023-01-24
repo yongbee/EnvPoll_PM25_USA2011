@@ -41,17 +41,12 @@ def _compose_grid_coord(whole_xy, point_xy, longest_dist, grid_left, grid_right)
     horizontal_points = np.linspace(sqaure_points['left'], sqaure_points['right'], grid_left+grid_right+1)
     all_grids =  np.transpose(np.dstack(np.meshgrid(vertical_points, horizontal_points)), (1,0,2))
 
-    larger_grids_copy = larger_grids.copy()
-    cmaq_grids = np.full(all_grids.shape[:2], np.nan)
-    for v_id in range(all_grids.shape[0]):
-        for h_id in range(all_grids.shape[1]):
-            target_coor = all_grids[v_id, h_id]
-            all_dist = distance_matrix([np.flip(target_coor)], larger_grids_copy[['cmaq_x', 'cmaq_y']].values)
-            min_dist = np.min(all_dist)
-            if min_dist <= longest_dist:
-                grid_id = np.argmin(all_dist)
-                cmaq_grids[v_id, h_id] = larger_grids_copy['cmaq_id'].iloc[grid_id]
-                larger_grids_copy.drop(larger_grids_copy.index[grid_id], inplace=True)
+    flat_grids = np.flip(all_grids.reshape(-1, all_grids.shape[-1]), axis=1)
+    all_dist = distance_matrix(flat_grids, larger_grids[['cmaq_x', 'cmaq_y']].values)
+    min_dist = np.min(all_dist, axis=1)
+    all_grid_id = np.array(larger_grids['cmaq_id'].iloc[np.argmin(all_dist, axis=1)]).astype(float)
+    all_grid_id[min_dist > longest_dist] = np.nan
+    cmaq_grids = all_grid_id.reshape(all_grids.shape[:2])
     return cmaq_grids, larger_grids, all_grids
 
 class MultiGridCompose:
@@ -101,34 +96,32 @@ class MultiGridCompose:
 
     def compose_multi_grid(self, grid_left: int, grid_right: int):
         all_cmaq_grids = []
-        for i in range(len(self.monitor_coord)):
-            point_xy = self.monitor_coord.iloc[i]
+        for i in self.monitor_coord.index:
+            point_xy = self.monitor_coord.loc[i]
             cmaq_grids, _, _ = _compose_grid_coord(self.whole_coord, point_xy, self.longest_dist, grid_left, grid_right)
             all_cmaq_grids.append(cmaq_grids)
         all_cmaq_grids = np.stack(all_cmaq_grids)
         return all_cmaq_grids
         
-    def allocate_grids_data(self, whole_data, grids_cmaq, monitoring_data):
-        all_dates = monitoring_data[['day', 'month']].drop_duplicates()
+    def allocate_grids_data(self, whole_data: pd.DataFrame, grids_cmaq: np.ndarray, monitoring_data: pd.DataFrame):
+        all_dates = monitoring_data['day'].unique()
 
         all_grid_data = []
-        for date_id in range(len(all_dates[:3])):
-            date = all_dates.iloc[date_id]
-            date_whole_data = whole_data.loc[np.all(whole_data[['day', 'month']]==date, axis=1)]
-            date_monitoring_data = monitoring_data.loc[np.all(monitoring_data[['day', 'month']]==date, axis=1)]
-            date_data_shape = [len(date_monitoring_data)] + list(grids_cmaq.shape[1:]) + [whole_data.shape[1]]
+        for date in all_dates[:3]:
+            date_whole_data = whole_data.loc[whole_data['day']==date]
+            date_monitoring_data = monitoring_data.loc[monitoring_data['day']==date]
+            date_monitor_coords = self.monitor_coord.index[np.isin(self.monitor_coord['cmaq_id'], date_monitoring_data['cmaq_id'])]
+            date_grids_cmaq = grids_cmaq[date_monitor_coords]
+            date_data_shape = list(date_grids_cmaq.shape) + [whole_data.shape[1]]
+
             date_grid_data = np.full(date_data_shape, np.nan)
-            for dt_id in range(date_data_shape[0]):
-                monitor_site_cmaq_id = date_monitoring_data.iloc[dt_id]['cmaq_id']
-                monitor_site_coord_index = self.monitor_coord.index[self.monitor_coord['cmaq_id']==monitor_site_cmaq_id]
-                monitor_grid_set = grids_cmaq[monitor_site_coord_index][0]
-                for v_id in range(monitor_grid_set.shape[0]):
-                    for h_id in range(monitor_grid_set.shape[1]):
-                        cmaq_id = monitor_grid_set[v_id, h_id]
-                        if not np.isnan(cmaq_id):
-                            cmaq_data = date_whole_data.loc[date_whole_data['cmaq_id']==cmaq_id]
-                            if len(cmaq_data) > 0:
-                                date_grid_data[dt_id, v_id, h_id] = cmaq_data
+            for grid_id in np.unique(date_grids_cmaq):
+                if np.isnan(grid_id):
+                    continue
+                grid_date_data = date_whole_data[date_whole_data['cmaq_id']==grid_id]
+                if len(grid_date_data) < 1:
+                    continue
+                date_grid_data[date_grids_cmaq==grid_id,:] = grid_date_data
             all_grid_data.append(date_grid_data)
         all_grid_data = np.vstack(all_grid_data)
         return all_grid_data
