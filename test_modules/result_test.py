@@ -14,7 +14,7 @@ def _get_clusters(input_dt: pd.DataFrame, label_dt: pd.Series):
     _, train_test_data_id = single_grid.split_train_test(input_dt, whole_cluster)
     return train_test_data_id
 
-def _get_labels(label_dt, train_test_data_id):
+def _get_labels(label_dt: pd.DataFrame, train_test_data_id: dict):
     all_labels = []
     for cluster_id in train_test_data_id.keys():
         cluster_test_index = train_test_data_id[cluster_id]['test_cluster']
@@ -22,7 +22,7 @@ def _get_labels(label_dt, train_test_data_id):
     all_labels = np.hstack(all_labels)
     return all_labels
 
-def _get_results(model_name):
+def _get_results(model_name: str):
     result_data = np.load(f"result/{model_name}.npz")
     all_pred_data = []
     for cluster_id in range(10):
@@ -45,4 +45,3 @@ if __name__=='__main__':
     all_pred = _get_results(model_name)
     r2_val = round(r2_score(all_label, all_pred), 4)
     print(r2_val)
-    a=3

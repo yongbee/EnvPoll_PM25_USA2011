@@ -3,7 +3,7 @@ import pandas as pd
 from data_process.spatial_validation import SingleGrid, extract_center_data
 from model.scikit import TrainTest
 
-def _create_tags(tag_num):
+def _create_tags(tag_num: int):
     first_tags = ['cmaq_x', 'cmaq_y']
     rest_tags = [f'tag{x}' for x in range(tag_num-2)]
     return first_tags + rest_tags

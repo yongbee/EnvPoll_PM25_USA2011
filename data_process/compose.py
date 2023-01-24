@@ -17,14 +17,14 @@ def _get_distance_statistic(whole_xy: pd.DataFrame):
     all_min_distance = np.hstack(all_min_distance)
     return all_min_distance
 
-def _compute_square_points(point_xy, longest_dist, grid_left, grid_right):
+def _compute_square_points(point_xy: pd.DataFrame, longest_dist: float, grid_left: int, grid_right: int):
     square_top = point_xy['cmaq_y'] + grid_left*longest_dist
     square_bot = point_xy['cmaq_y'] - grid_right*longest_dist
     square_left = point_xy['cmaq_x'] - grid_left*longest_dist
     square_right = point_xy['cmaq_x'] + grid_right*longest_dist
     return {'top':square_top, 'bot':square_bot, 'left':square_left, 'right':square_right}
 
-def _grid_dataset(whole_xy, point_xy, longest_dist, grid_left, grid_right):
+def _grid_dataset(whole_xy: pd.DataFrame, point_xy: pd.DataFrame, longest_dist: float, grid_left: int, grid_right: int):
     sqaure_points = _compute_square_points(point_xy, longest_dist, grid_left, grid_right)
     square_xy = whole_xy.loc[
         (whole_xy['cmaq_y']<=sqaure_points['top']) &
@@ -34,7 +34,7 @@ def _grid_dataset(whole_xy, point_xy, longest_dist, grid_left, grid_right):
     ]
     return square_xy
 
-def _compose_grid_coord(whole_xy, point_xy, longest_dist, grid_left, grid_right):
+def _compose_grid_coord(whole_xy: pd.DataFrame, point_xy: pd.DataFrame, longest_dist: float, grid_left: int, grid_right: int):
     larger_grids = _grid_dataset(whole_xy, point_xy, longest_dist, grid_left+2, grid_right+2)
     sqaure_points = _compute_square_points(point_xy, longest_dist, grid_left, grid_right)
     vertical_points = np.linspace(sqaure_points['top'], sqaure_points['bot'], grid_left+grid_right+1)
@@ -107,7 +107,7 @@ class MultiGridCompose:
         all_dates = monitoring_data['day'].unique()
 
         all_grid_data = []
-        for date in all_dates[:3]:
+        for date in all_dates:
             date_whole_data = whole_data.loc[whole_data['day']==date]
             date_monitoring_data = monitoring_data.loc[monitoring_data['day']==date]
             date_monitor_coords = self.monitor_coord.index[np.isin(self.monitor_coord['cmaq_id'], date_monitoring_data['cmaq_id'])]

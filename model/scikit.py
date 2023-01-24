@@ -1,9 +1,8 @@
-import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import r2_score
 
-def _cluster_train_test_index(set_index):
+def _cluster_train_test_index(set_index: pd.DataFrame):
     train_in = set_index['train_in_cluster']
     train_out = set_index['train_out_cluster']
     train_index = train_in.union(train_out)
@@ -16,7 +15,7 @@ def _data_drop_na(train_dt: pd.DataFrame, test_dt: pd.DataFrame):
     test_drop_dt = test_drop_dt.dropna(axis=0)
     return train_drop_dt, test_drop_dt
 
-def _normalize_train_test(train_dt:pd.DataFrame, test_dt:pd.DataFrame):
+def _normalize_train_test(train_dt: pd.DataFrame, test_dt: pd.DataFrame):
     _std = train_dt.std(axis=0)
     train_dt = train_dt.loc[:,_std>0]
     test_dt = test_dt.loc[:, _std>0]
@@ -26,13 +25,13 @@ def _normalize_train_test(train_dt:pd.DataFrame, test_dt:pd.DataFrame):
     return train_dt, test_dt
 
 class TrainTest:
-    def __init__(self, model_name:str, normalize=False):
+    def __init__(self, model_name: str, normalize=False):
         if model_name == 'RF':
             self.model = RandomForestRegressor(max_features=12, n_estimators=1000, random_state=10)
         self.model_name = model_name
         self.normalize = normalize
 
-    def train_predict(self, input_dt:pd.DataFrame, label_dt:pd.Series, train_test_data_id:dict):
+    def train_predict(self, input_dt: pd.DataFrame, label_dt: pd.Series, train_test_data_id: dict):
         all_pred_info = {}
         for cluster_id in train_test_data_id.keys():
             print(f"Cluster{cluster_id} Train and Test")
