@@ -14,10 +14,16 @@ def _save_multi_grid_dataset(multigrid_dataset: np.ndarray, grid_left: int, grid
     grid_size = grid_left + grid_right + 1
     np.save(f"data/grid{grid_size}_dataset", multigrid_dataset)
 
+def _save_multi_grid_dataset_target(multigrid_dataset: np.ndarray, multigrid_target: np.ndarray, grid_left: int, grid_right: int):
+    grid_size = grid_left + grid_right + 1
+    np.save(f"data/grid{grid_size}_dataset_without_WA", multigrid_dataset)
+    np.save(f"data/grid{grid_size}_target", multigrid_target)
+
 if __name__ == '__main__':
     small_set_test = False
     save_grid = True
-    left_grids, right_grids = 31, 32
+    weight_pm_target = True
+    left_grids, right_grids = 2, 2
     columns = ['day', 'month', 'cmaq_x', 'cmaq_y', 'cmaq_id', 'rid', 'elev', 'forest_cover', 'pd', 'local', 'limi', 'high', 'is', 
     'nldas_pevapsfc','nldas_pressfc', 'nldas_cape', 'nldas_ugrd10m', 'nldas_vgrd10m', 'nldas_tmp2m', 'nldas_rh2m', 'nldas_dlwrfsfc', 
     'nldas_dswrfsfc', 'nldas_pcpsfc', 'nldas_fpcsfc', 'gc_aod', 'aod_value', 'emissi11_pm25', 'pm25_value_k', 'pm25_value']
@@ -33,9 +39,14 @@ if __name__ == '__main__':
         _save_multi_grid(all_cmaq_grids, left_grids, right_grids)
     else:
         all_cmaq_grids = _read_multi_grid(left_grids, right_grids)
+    
     if small_set_test:
-        all_multigrid_dataset = multi_compose.allocate_grids_data(monitoring_whole_data[columns], all_cmaq_grids, monitoring_whole_data[columns])
+        whole_data = monitoring_whole_data[columns]
     else:
         whole_data = pd.read_csv("data/largeUS_pred.csv.gz", compression='gzip', index_col=0)
-        all_multigrid_dataset = multi_compose.allocate_grids_data(whole_data[columns], all_cmaq_grids, monitoring_whole_data[columns])
-    _save_multi_grid_dataset(all_multigrid_dataset, left_grids, right_grids)
+    if weight_pm_target:
+        all_multigrid_dataset, all_multigrid_target = multi_compose.allocate_grids_data(whole_data[columns], all_cmaq_grids, monitoring_whole_data[columns], weight_pm_target)
+        _save_multi_grid_dataset_target(all_multigrid_dataset, all_multigrid_target, left_grids, right_grids)
+    else:
+        all_multigrid_dataset = multi_compose.allocate_grids_data(whole_data[columns], all_cmaq_grids, monitoring_whole_data[columns], weight_pm_target)
+        _save_multi_grid_dataset(all_multigrid_dataset, left_grids, right_grids)

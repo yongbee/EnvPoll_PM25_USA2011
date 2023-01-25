@@ -95,6 +95,9 @@ class MultiGridCompose:
             plt.show()
 
     def compose_multi_grid(self, grid_left: int, grid_right: int):
+        if (grid_right - grid_left > 1) or (grid_right - grid_left < 0):
+            raise Exception("The shape is not square.")
+
         all_cmaq_grids = []
         for i in self.monitor_coord.index:
             point_xy = self.monitor_coord.loc[i]
@@ -103,25 +106,44 @@ class MultiGridCompose:
         all_cmaq_grids = np.stack(all_cmaq_grids)
         return all_cmaq_grids
         
-    def allocate_grids_data(self, whole_data: pd.DataFrame, grids_cmaq: np.ndarray, monitoring_data: pd.DataFrame):
+    def allocate_grids_data(self, whole_data: pd.DataFrame, grids_cmaq: np.ndarray, monitoring_data: pd.DataFrame, pm_target_compose: bool):
         all_dates = monitoring_data['day'].unique()
 
-        all_grid_data = []
+        all_grid_data, all_pm_target = [], []
         for date in all_dates:
             date_whole_data = whole_data.loc[whole_data['day']==date]
             date_monitoring_data = monitoring_data.loc[monitoring_data['day']==date]
             date_monitor_coords = self.monitor_coord.index[np.isin(self.monitor_coord['cmaq_id'], date_monitoring_data['cmaq_id'])]
             date_grids_cmaq = grids_cmaq[date_monitor_coords]
-            date_data_shape = list(date_grids_cmaq.shape) + [whole_data.shape[1]]
+            if pm_target_compose:
+                date_data_shape = list(date_grids_cmaq.shape) + [whole_data.shape[1]-1]
+            else:
+                date_data_shape = list(date_grids_cmaq.shape) + [whole_data.shape[1]]
 
             date_grid_data = np.full(date_data_shape, np.nan)
+            date_grid_target = np.full(date_grids_cmaq.shape, np.nan)
             for grid_id in np.unique(date_grids_cmaq):
                 if np.isnan(grid_id):
                     continue
                 grid_date_data = date_whole_data[date_whole_data['cmaq_id']==grid_id]
                 if len(grid_date_data) < 1:
                     continue
-                date_grid_data[date_grids_cmaq==grid_id,:] = grid_date_data
+                if pm_target_compose:
+                    date_grid_data[date_grids_cmaq==grid_id,:] = grid_date_data.drop(columns=['pm25_value_k'])
+                    date_grid_target[date_grids_cmaq==grid_id] = grid_date_data['pm25_value_k']
+                else:
+                    date_grid_data[date_grids_cmaq==grid_id,:] = grid_date_data
             all_grid_data.append(date_grid_data)
-        all_grid_data = np.vstack(all_grid_data)
-        return all_grid_data
+            if pm_target_compose:
+                grid_left = grids_cmaq.shape[1]//2
+                cmaq_index_monitor_data = date_monitoring_data.set_index('cmaq_id')
+                cmaq_id_order = self.monitor_coord.loc[date_monitor_coords, 'cmaq_id']
+                date_grid_target[:,grid_left, grid_left] = cmaq_index_monitor_data.loc[cmaq_id_order, 'pm25_value']
+                all_pm_target.append(date_grid_target)
+        if pm_target_compose:
+            all_grid_data = np.vstack(all_grid_data)
+            all_pm_target = np.vstack(all_pm_target)
+            return all_grid_data, all_pm_target
+        else:
+            all_grid_data = np.vstack(all_grid_data)
+            return all_grid_data
