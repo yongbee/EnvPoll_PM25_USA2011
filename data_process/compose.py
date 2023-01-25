@@ -135,7 +135,7 @@ class MultiGridCompose:
                     date_grid_data[date_grids_cmaq==grid_id,:] = grid_date_data
             all_grid_data.append(date_grid_data)
             if pm_target_compose:
-                grid_left = grids_cmaq.shape[1]//2
+                grid_left = (grids_cmaq.shape[1]-1)//2
                 cmaq_index_monitor_data = date_monitoring_data.set_index('cmaq_id')
                 cmaq_id_order = self.monitor_coord.loc[date_monitor_coords, 'cmaq_id']
                 date_grid_target[:,grid_left, grid_left] = cmaq_index_monitor_data.loc[cmaq_id_order, 'pm25_value']
