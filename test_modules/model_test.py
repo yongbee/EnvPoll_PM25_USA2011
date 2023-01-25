@@ -1,12 +1,7 @@
 import numpy as np
 import pandas as pd
-from data_process.spatial_validation import SingleGrid, extract_center_data
+from data_process.spatial_validation import SingleGrid
 from model.scikit import TrainTest
-
-def _create_tags(tag_num: int):
-    first_tags = ['cmaq_x', 'cmaq_y']
-    rest_tags = [f'tag{x}' for x in range(tag_num-2)]
-    return first_tags + rest_tags
 
 def _get_clusters(input_dt: pd.DataFrame, label_dt: pd.Series):
     single_grid = SingleGrid("KMeans")
@@ -20,15 +15,14 @@ def _save_results(all_pred: dict, model_name: str):
 
 if __name__=='__main__':
     model_name = "RF"
-    data_path = 'v10_170713_5x5_include_na_dataset.npz'
-    label_path = "v10_170713_5x5_include_na_label.npz"
-    x_tr_blended = np.load(data_path)['arr_0']
-    y_tr_blended = np.load(label_path)['arr_0']
-    tag_names = _create_tags(28)
+    tag_names = ['day', 'month', 'cmaq_x', 'cmaq_y', 'cmaq_id', 'rid', 'elev', 'forest_cover', 'pd', 'local', 'limi', 'high', 'is', 
+    'nldas_pevapsfc','nldas_pressfc', 'nldas_cape', 'nldas_ugrd10m', 'nldas_vgrd10m', 'nldas_tmp2m', 'nldas_rh2m', 'nldas_dlwrfsfc', 
+    'nldas_dswrfsfc', 'nldas_pcpsfc', 'nldas_fpcsfc', 'gc_aod', 'aod_value', 'emissi11_pm25', 'pm25_value_k', 'pm25_value']
+    monitoring_whole_data = pd.read_csv("data/us_monitoring.csv")
 
-    center_input_dt = extract_center_data(tag_names, x_tr_blended, 5)
-    center_frame = pd.DataFrame(center_input_dt, columns=tag_names, index=np.arange(len(y_tr_blended)))
-    train_test_data_id = _get_clusters(center_frame, y_tr_blended)
+    input_dt = monitoring_whole_data.drop(columns=["pm25_value"])
+    label_dt = monitoring_whole_data["pm25_value"]
+    train_test_data_id = _get_clusters(input_dt, label_dt)
     model_train_test = TrainTest(model_name, True)
-    all_pred = model_train_test.train_predict(center_frame, y_tr_blended, train_test_data_id)
+    all_pred = model_train_test.train_predict(input_dt, label_dt, train_test_data_id)
     _save_results(all_pred, model_name)

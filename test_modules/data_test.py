@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from data_process.spatial_validation import MultipleGrid
+from data_process.spatial_validation import SingleGrid
 
 def _create_tags(tag_num):
     first_tags = ['cmaq_x', 'cmaq_y']
@@ -28,15 +28,17 @@ def _plot_train_test(cluster_train_test, cluster_id):
     plt.clf()
 
 if __name__=='__main__':
-    data_path = 'v10_170713_5x5_include_na_dataset.npz'
-    label_path = "v10_170713_5x5_include_na_label.npz"
-    x_tr_blended = np.load(data_path)['arr_0']
-    y_tr_blended = np.load(label_path)['arr_0']
-    tag_names = _create_tags(28)
+    tag_names = ['day', 'month', 'cmaq_x', 'cmaq_y', 'cmaq_id', 'rid', 'elev', 'forest_cover', 'pd', 'local', 'limi', 'high', 'is', 
+    'nldas_pevapsfc','nldas_pressfc', 'nldas_cape', 'nldas_ugrd10m', 'nldas_vgrd10m', 'nldas_tmp2m', 'nldas_rh2m', 'nldas_dlwrfsfc', 
+    'nldas_dswrfsfc', 'nldas_pcpsfc', 'nldas_fpcsfc', 'gc_aod', 'aod_value', 'emissi11_pm25', 'pm25_value_k', 'pm25_value']
+    monitoring_whole_data = pd.read_csv("data/us_monitoring.csv")
+
+    input_dt = monitoring_whole_data.drop(columns=["pm25_value"])
+    label_dt = monitoring_whole_data["pm25_value"]
     
-    multi_grid = MultipleGrid(5, "KMeans")
-    whole_cluster, coor_cluster = multi_grid.cluster_grids(tag_names, x_tr_blended, pd.Series(y_tr_blended))
+    single_grid = SingleGrid("KMeans")
+    whole_cluster, coor_cluster = single_grid.cluster_grids(input_dt, label_dt)
     _plot_grid_clusters(coor_cluster)
-    train_test_grids, train_test_data_id = multi_grid.split_train_test(tag_names, x_tr_blended, whole_cluster)
+    train_test_grids, train_test_data_id = single_grid.split_train_test(input_dt, whole_cluster)
     for i in train_test_grids.keys():
         _plot_train_test(train_test_grids, i)
