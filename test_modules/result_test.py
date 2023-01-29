@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
-from sklearn.metrics import r2_score
-from data_process.spatial_validation import SingleGrid, extract_center_data
+from sklearn.metrics import r2_score, mean_absolute_error
+from data_process.spatial_validation import SingleGrid
 
 def _create_tags(tag_num):
     first_tags = ['cmaq_x', 'cmaq_y']
@@ -43,4 +43,6 @@ if __name__=='__main__':
     all_label = _get_labels(label_dt, train_test_data_id)
     all_pred = _get_results(model_name)
     r2_val = round(r2_score(all_label, all_pred), 4)
-    print(r2_val)
+    mae_val = round(mean_absolute_error(all_label, all_pred), 4)
+    print(f"Whole MAE: {mae_val}")
+    print(f"Whole R-squared: {r2_val}")

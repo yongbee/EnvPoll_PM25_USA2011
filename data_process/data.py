@@ -15,7 +15,7 @@ def cluster_train_valid_index(set_index: pd.DataFrame):
     train_in = set_index['train_in_cluster']
     train_out = set_index['train_out_cluster']
     train_index = train_in.union(train_out)
-    valid_index = set_index['valid_cluster']
+    valid_index = set_index['test_cluster']
     return train_index, valid_index
 
 def _drop_constant_col(train_dt: pd.DataFrame, valid_dt: pd.DataFrame):
@@ -56,7 +56,8 @@ class SingleData:
             self._normalize_train_valid()
 
     def split_train_valid(self):
-        self.train_dt, self.valid_dt = {}
+        self.train_dt, self.valid_dt = {}, {}
+        self.input_dim = {}
         for cluster_id in self.train_valid_data_id.keys():
             set_index = self.train_valid_data_id[cluster_id]
             train_index, valid_index = cluster_train_valid_index(set_index)
@@ -65,6 +66,7 @@ class SingleData:
             train_input, valid_input = _drop_useless_col(train_input, valid_input)
             self.train_dt[cluster_id] = {"input":train_input, "label":train_label}
             self.valid_dt[cluster_id] = {"input":valid_input, "label":valid_label}
+            self.input_dim[cluster_id] = train_input.shape[1]
         
     def _normalize_train_valid(self):
         for cluster_id in self.train_dt.keys():
@@ -76,10 +78,10 @@ class SingleData:
 
     def data_convert_loader(self):
         for cluster_id in self.train_dt.keys():
-            train_input = self.train_dt[cluster_id]["input"]
-            train_label = self.train_dt[cluster_id]["label"]
-            valid_input = self.valid_dt[cluster_id]["input"]
-            valid_label = self.valid_dt[cluster_id]["label"]
+            train_input = np.array(self.train_dt[cluster_id]["input"])
+            train_label = np.array(self.train_dt[cluster_id]["label"])
+            valid_input = np.array(self.valid_dt[cluster_id]["input"])
+            valid_label = np.array(self.valid_dt[cluster_id]["label"])
             train_loader = _convert_loader(train_input, train_label, 128)
             valid_loader = _convert_loader(valid_input, valid_label, 128)
             self.train_dt[cluster_id] = train_loader
