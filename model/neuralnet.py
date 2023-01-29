@@ -4,20 +4,7 @@ from sklearn.metrics import r2_score
 import torch
 from torch import nn
 from torch.nn import MSELoss
-from torch.utils.data import Dataset, DataLoader
 from model.utils import cluster_train_test_index, data_drop_na, normalize_train_test
-
-class InputOutputSet(Dataset):
-    def __init__(self, input_dt, output_dt):
-        super().__init__()
-        self.input_dt = input_dt
-        self.output_dt = output_dt
-
-    def __getitem__(self, i):
-        return self.input_dt[i], self.output_dt[i]
-
-    def __len__(self):
-        return len(self.input_dt)
 
 class FnnRegresson(nn.Module):
     def __init__(self, **input_shapes):
