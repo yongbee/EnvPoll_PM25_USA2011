@@ -2,27 +2,6 @@ import numpy as np
 import pandas as pd
 from sklearn.mixture import GaussianMixture
 from sklearn.cluster import KMeans
-
-def _cluster_coords(coordinates: pd.DataFrame, method: str, n_clusters: int):
-    if "cmaq_x" not in coordinates.columns:
-        raise Exception("'cmaq_x' must be in the input coordinate columns.")
-    if "cmaq_y" not in coordinates.columns:
-        raise Exception("'cmaq_y' must be in the input coordinate columns.")
-    if method not in ["GaussianMixture", "KMeans"]:
-        raise Exception("Inappropriate method.")
-
-    np.random.seed(1000)
-    unique_coors = coordinates.drop_duplicates()
-    if method == 'GaussianMixture':
-        cluster_model = GaussianMixture(n_components=n_clusters).fit(unique_coors)
-    elif method == "KMeans":
-        cluster_model = KMeans(n_clusters=n_clusters).fit(unique_coors)
-    coor_pred = cluster_model.predict(unique_coors)
-    whole_pred = cluster_model.predict(coordinates)
-    coor_clusters = unique_coors.copy()
-    coor_clusters["cluster id"] = coor_pred
-    whole_df = pd.DataFrame(whole_pred, index=coordinates.index, columns=["cluster id"])
-    return whole_df, coor_clusters
     
 def _split_in_cluster(coordinates: pd.DataFrame):
     if "cmaq_x" not in coordinates.columns:
@@ -76,6 +55,31 @@ class SingleGrid:
         self.cluster_num = cluster_num
         self.cluster_method = cluster_method
 
+    def _train_cluster_model(self, coordinates: pd.DataFrame, method: str, n_clusters: int):
+        np.random.seed(1000)
+        if method == 'GaussianMixture':
+            self.cluster_model = GaussianMixture(n_components=n_clusters).fit(coordinates)
+        elif method == "KMeans":
+            self.cluster_model = KMeans(n_clusters=n_clusters).fit(coordinates)
+
+
+    def _cluster_coords(self, coordinates: pd.DataFrame, method: str, n_clusters: int):
+        if "cmaq_x" not in coordinates.columns:
+            raise Exception("'cmaq_x' must be in the input coordinate columns.")
+        if "cmaq_y" not in coordinates.columns:
+            raise Exception("'cmaq_y' must be in the input coordinate columns.")
+        if method not in ["GaussianMixture", "KMeans"]:
+            raise Exception("Inappropriate method.")
+
+        unique_coors = coordinates.drop_duplicates()
+        self._train_cluster_model(unique_coors, method, n_clusters)
+        coor_pred = self.cluster_model.predict(unique_coors)
+        whole_pred = self.cluster_model.predict(coordinates)
+        coor_clusters = unique_coors.copy()
+        coor_clusters["cluster id"] = coor_pred
+        whole_df = pd.DataFrame(whole_pred, index=coordinates.index, columns=["cluster id"])
+        return whole_df, coor_clusters
+
     def cluster_grids(self, input_dt: pd.DataFrame, target_dt: pd.Series):
         if type(input_dt) is not pd.DataFrame:
             raise Exception("Input data type is not pd.DataFrame.")
@@ -88,7 +92,7 @@ class SingleGrid:
         if "cmaq_y" not in input_dt.columns:
             raise Exception("'cmaq_y' must be in the input data columns.")
 
-        return _cluster_coords(input_dt[["cmaq_x", "cmaq_y"]], self.cluster_method, self.cluster_num)
+        return self._cluster_coords(input_dt[["cmaq_x", "cmaq_y"]], self.cluster_method, self.cluster_num)
 
     def split_train_test(self, input_dt: pd.DataFrame, whole_cluster: pd.DataFrame):
         if type(input_dt) is not pd.DataFrame:

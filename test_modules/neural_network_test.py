@@ -27,6 +27,6 @@ if __name__=='__main__':
     single_data = SingleData(input_dt, label_dt, train_test_data_id, True)
     single_data.data_convert_loader()
     model_train_test = TrainTest(model_name, single_data.input_dim)
-    model_train_test.train(single_data.train_dt, 20)
+    model_train_test.train(single_data.train_dt, 25)
     all_pred = model_train_test.predict(single_data.valid_dt)
     _save_results(all_pred, model_name)
