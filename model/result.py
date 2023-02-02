@@ -80,12 +80,19 @@ class SingleAnalyzer:
         plt.cla()
         plt.clf()
 
-        min_r2 = np.percentile(all_coord_values['r2_value'], 20)
-        max_r2 = np.percentile(all_coord_values['r2_value'], 100)
         self.plot_whole_cluster(False, 0.1)
         plt.scatter(all_coord_values['cmaq_x'], all_coord_values['cmaq_y'], s=3, 
-        c=all_coord_values['r2_value'], cmap='rainbow', vmin=min_r2, vmax=max_r2)
+        c=all_coord_values['r2_value'], cmap='rainbow', vmin=0, vmax=1)
         plt.colorbar()
-        plt.savefig(f"figures/{model_name}_R2_values")
+        plt.savefig(f"figures/{model_name}_R2_map")
+        plt.cla()
+        plt.clf()
+
+        high_r2 = all_coord_values['r2_value'][all_coord_values['r2_value']>0]
+        plt.subplot(1,2,1)
+        plt.hist(all_coord_values['r2_value'], bins=30)
+        plt.subplot(1,2,2)
+        plt.hist(high_r2, bins=30)
+        plt.savefig(f"figures/{model_name}_R2_histogram")
         plt.cla()
         plt.clf()
