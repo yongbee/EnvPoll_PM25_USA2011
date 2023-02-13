@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-from sklearn.metrics import r2_score, mean_absolute_error
 from data_process.spatial_validation import SingleGrid
 from model.result import SingleAnalyzer
 
@@ -29,7 +28,7 @@ def _get_results(model_name: str, index):
     return all_pred_data
 
 if __name__=='__main__':
-    model_name = "FNN"
+    model_name = "RF"
     tag_names = ['day', 'month', 'cmaq_x', 'cmaq_y', 'cmaq_id', 'rid', 'elev', 'forest_cover', 'pd', 'local', 'limi', 'high', 'is', 
     'nldas_pevapsfc','nldas_pressfc', 'nldas_cape', 'nldas_ugrd10m', 'nldas_vgrd10m', 'nldas_tmp2m', 'nldas_rh2m', 'nldas_dlwrfsfc', 
     'nldas_dswrfsfc', 'nldas_pcpsfc', 'nldas_fpcsfc', 'gc_aod', 'aod_value', 'emissi11_pm25', 'pm25_value_k', 'pm25_value']
@@ -44,8 +43,10 @@ if __name__=='__main__':
     all_pred = _get_results(model_name, all_label.index)
 
     single_analyzer = SingleAnalyzer(model_name, cluster_model, whole_coord, all_input, all_label, all_pred, train_test_data_id)
+    single_analyzer.scatter_label_pred()
     single_analyzer.plot_whole_cluster(True, 1)
     single_analyzer.plot_pm_vals()
     single_analyzer.plot_accuracy_map()
+    single_analyzer.plot_cluster_accuracy()
     single_analyzer.hist_accuracy()
     single_analyzer.scatter_std_accuracy()
