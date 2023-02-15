@@ -28,7 +28,7 @@ def _get_results(model_name: str, index):
     return all_pred_data
 
 if __name__=='__main__':
-    model_name = "RF"
+    model_name = "GBM"
     tag_names = ['day', 'month', 'cmaq_x', 'cmaq_y', 'cmaq_id', 'rid', 'elev', 'forest_cover', 'pd', 'local', 'limi', 'high', 'is', 
     'nldas_pevapsfc','nldas_pressfc', 'nldas_cape', 'nldas_ugrd10m', 'nldas_vgrd10m', 'nldas_tmp2m', 'nldas_rh2m', 'nldas_dlwrfsfc', 
     'nldas_dswrfsfc', 'nldas_pcpsfc', 'nldas_fpcsfc', 'gc_aod', 'aod_value', 'emissi11_pm25', 'pm25_value_k', 'pm25_value']
@@ -43,6 +43,7 @@ if __name__=='__main__':
     all_pred = _get_results(model_name, all_label.index)
 
     single_analyzer = SingleAnalyzer(model_name, cluster_model, whole_coord, all_input, all_label, all_pred, train_test_data_id)
+    print(single_analyzer.cluster_info)
     single_analyzer.scatter_label_pred()
     single_analyzer.plot_whole_cluster(True, 1)
     single_analyzer.plot_pm_vals()

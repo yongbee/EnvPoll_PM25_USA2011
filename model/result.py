@@ -5,11 +5,6 @@ from matplotlib.gridspec import GridSpec
 from scipy import stats
 from sklearn.metrics import r2_score, mean_absolute_error
 
-def _density_scatter(x_val, y_val, ax):
-    xy_val = np.vstack([x_val, y_val])
-    z = stats.gaussian_kde(xy_val)(xy_val)
-    ax.scatter(x_val, y_val, c=z, s=3)
-
 class SingleAnalyzer:
     def __init__(self, model_name, cluster_model, whole_coord, input_data: pd.DataFrame, label_data: pd.Series, pred_data: pd.Series, train_test_id):
         self.model_name = model_name
