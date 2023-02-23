@@ -12,7 +12,10 @@ def _get_clusters(input_dt: pd.DataFrame, label_dt: pd.Series):
 
 if __name__=='__main__':
     model_name = "GBM"
-    model_hyperparameters = {"learning_rate":[0.01, 0.05, 0.1], "n_estimators":[100, 500, 1000], "max_depth":[6, 7, 8]}
+    # model_hyperparameters = {"learning_rate":[0.01, 0.05, 0.1], "n_estimators":[100, 500, 1000], "max_depth":[6, 7, 8]}
+    # model_hyperparameters = {"learning_rate":[0.01], "n_estimators":[100, 500, 1000], "max_depth":[6]}
+    learning_rate_hyperparameters = {"learning_rate":[0.01, 0.05, 0.1], "n_estimators":[100], "max_depth":[6]}
+    depth_hyperparameters = {"learning_rate":[0.01], "n_estimators":[100], "max_depth":[6, 7, 8]}
     columns = ['day', 'month', 'cmaq_x', 'cmaq_y', 'cmaq_id', 'rid', 'elev', 'forest_cover', 'pd', 'local', 'limi', 'high', 'is', 
     'nldas_pevapsfc','nldas_pressfc', 'nldas_cape', 'nldas_ugrd10m', 'nldas_vgrd10m', 'nldas_tmp2m', 'nldas_rh2m', 'nldas_dlwrfsfc', 
     'nldas_dswrfsfc', 'nldas_pcpsfc', 'nldas_fpcsfc', 'gc_aod', 'aod_value', 'emissi11_pm25', 'pm25_value_k', 'pm25_value']
@@ -22,5 +25,8 @@ if __name__=='__main__':
     label_dt = monitoring_whole_data["pm25_value"]
     train_test_data_id = _get_clusters(input_dt, label_dt)
     single_data = SingleData(input_dt, label_dt, train_test_data_id, True)
-    model_train_test = HyperparameterTest(model_name, model_hyperparameters)
-    model_train_test.hyperparameter_test(single_data.train_dt, single_data.valid_dt)
+    model_train_test = HyperparameterTest(model_name, learning_rate_hyperparameters)
+    model_train_test.hyperparameter_test(single_data.train_dt, single_data.valid_dt, "learning_rate")
+
+    model_train_test = HyperparameterTest(model_name, depth_hyperparameters)
+    model_train_test.hyperparameter_test(single_data.train_dt, single_data.valid_dt, "depth")

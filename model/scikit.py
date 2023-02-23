@@ -8,7 +8,7 @@ def _compute_accuracy(cluster_data_pair, cluster_all_pred):
     all_label, all_pred = [], []
     for cluster in cluster_data_pair.keys():
         cluster_label = cluster_data_pair[cluster]["label"]
-        clsuter_pred = cluster_all_pred[cluster]
+        clsuter_pred = cluster_all_pred[f"cluster{cluster}"]
         all_label.append(cluster_label)
         all_pred.append(clsuter_pred)
     all_label = np.hstack(all_label)
@@ -61,7 +61,7 @@ class HyperparameterTest(TrainTest):
         super().__init__(model_name)
         self.parameters = parameters
 
-    def hyperparameter_test(self, train_dataset, pred_dataset):
+    def hyperparameter_test(self, train_dataset, pred_dataset, test_name):
         keys, values = zip(*self.parameters.items())
         hyperparameter_combinations = [dict(zip(keys, v)) for v in itertools.product(*values)]
         all_accuracy = pd.DataFrame(columns=keys + ("MAE", "R2"), index=range(len(hyperparameter_combinations)))
@@ -71,5 +71,4 @@ class HyperparameterTest(TrainTest):
             comb_preds = self.predict(pred_dataset)
             mae, r2 = _compute_accuracy(pred_dataset, comb_preds)
             all_accuracy.loc[comb_id] = list(comb.values()) + [mae,r2]
-            all_accuracy[comb] = [mae, r2]
-        all_accuracy.to_csv(f"result/{self.model_name}_hyperparameters_accuracy.csv")
+        all_accuracy.to_csv(f"result/{self.model_name}_{test_name}_hyperparameters_accuracy.csv", index=False)
