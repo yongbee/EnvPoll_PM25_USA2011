@@ -76,6 +76,18 @@ class SingleAnalyzer:
             plt.cla()
             plt.clf()
 
+    def plot_cluster_cv_set(self, cluster_id, cluster_sets, alpha):
+        cluster_coords = self.whole_coord.iloc[self.whole_clsuter==cluster_id]
+        non_cluster_coords = self.whole_coord.iloc[self.whole_clsuter!=cluster_id]
+        for set_id in cluster_sets.keys():
+            cluster_set_dt = cluster_sets[set_id]
+            plt.scatter(cluster_coords['cmaq_x'], cluster_coords['cmaq_y'], s=3, alpha=alpha, label="cluster points")
+            plt.scatter(non_cluster_coords['cmaq_x'], non_cluster_coords['cmaq_y'], s=3, alpha=alpha, color='gray', label="non-cluster points")
+            # plt.scatter(cluster_set_dt["target"][:,0], cluster_set_dt["target"][:,1], s=3, color='g', label="target")
+            plt.scatter(cluster_set_dt["test"][:,0], cluster_set_dt["test"][:,1], s=3, color='r', label="test")
+            plt.legend()
+            plt.show()
+
     def plot_cluster_accuracy(self):
         all_cluster_accuracy = []
         for cluster_id in np.sort(np.unique(self.whole_clsuter)):
