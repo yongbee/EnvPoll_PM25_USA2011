@@ -58,4 +58,3 @@ if __name__=='__main__':
 
     split_sets = _get_split_coords(5, 10, tag_names[:-1])
     single_analyzer.plot_cluster_cv_set(4, split_sets, 0.3)
-
