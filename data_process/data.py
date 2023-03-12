@@ -2,6 +2,10 @@ import numpy as np
 import pandas as pd
 from torch.utils.data import Dataset, DataLoader
 
+tag_names = ['day', 'month', 'cmaq_x', 'cmaq_y', 'cmaq_id', 'rid', 'elev', 'forest_cover', 'pd', 'local', 'limi', 'high', 'is', 
+    'nldas_pevapsfc','nldas_pressfc', 'nldas_cape', 'nldas_ugrd10m', 'nldas_vgrd10m', 'nldas_tmp2m', 'nldas_rh2m', 'nldas_dlwrfsfc', 
+    'nldas_dswrfsfc', 'nldas_pcpsfc', 'nldas_fpcsfc', 'gc_aod', 'aod_value', 'emissi11_pm25', 'pm25_value_k', 'pm25_value']
+
 def _convert_loader(input_dt:np.ndarray, output_dt:np.ndarray, batch:int):
     if len(input_dt) < 1:
         raise Exception("input_dt length is 0.")

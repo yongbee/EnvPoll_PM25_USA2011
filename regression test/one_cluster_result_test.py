@@ -1,13 +1,7 @@
 import numpy as np
 import pandas as pd
-from data_process.spatial_validation import SingleGrid
+from data_process.spatial_validation import get_clusters
 from model.result import SingleAnalyzer
-
-def _get_clusters(input_dt: pd.DataFrame, label_dt: pd.Series):
-    single_grid = SingleGrid("KMeans")
-    whole_cluster, _ = single_grid.cluster_grids(input_dt, pd.Series(label_dt))
-    _, train_test_data_id = single_grid.split_train_test(input_dt, whole_cluster)
-    return train_test_data_id, single_grid.cluster_model
 
 def _get_input_label(input_dt: pd.DataFrame, label_dt: pd.DataFrame, train_test_data_id: dict):
     all_inputs, all_labels = [], []
@@ -49,7 +43,7 @@ if __name__=='__main__':
 
     input_dt = monitoring_whole_data.drop(columns=["pm25_value"])
     label_dt = monitoring_whole_data["pm25_value"]
-    train_test_data_id, cluster_model = _get_clusters(input_dt, label_dt)
+    train_test_data_id, cluster_model = get_clusters(input_dt, label_dt)
     all_input, all_label = _get_input_label(input_dt, label_dt, train_test_data_id)
     all_pred = _get_results(model_name, all_label.index)
 

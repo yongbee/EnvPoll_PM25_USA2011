@@ -50,6 +50,12 @@ def extract_center_data(tag_names: list, input_dt: np.ndarray, grid_scale: int):
     center_dt = input_dt[:,center_cell_id*len(tag_names):(center_cell_id+1)*len(tag_names)]
     return center_dt
 
+def get_clusters(input_dt: pd.DataFrame, label_dt: pd.Series):
+    single_grid = SingleGrid("KMeans")
+    whole_cluster, _ = single_grid.cluster_grids(input_dt, pd.Series(label_dt))
+    _, train_test_data_id = single_grid.split_train_test(input_dt, whole_cluster)
+    return train_test_data_id, single_grid.cluster_model
+
 class SingleGrid:
     def __init__(self, cluster_method="GaussianMixture", cluster_num=10):
         self.cluster_num = cluster_num
