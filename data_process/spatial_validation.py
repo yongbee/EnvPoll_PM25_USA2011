@@ -109,25 +109,6 @@ class SingleGrid:
 
         xy_cluster = input_dt[["cmaq_x", "cmaq_y"]].join(whole_cluster)
         return _split_train_test(xy_cluster)
-        
-class TargetSingle:
-    def __init__(self, set_num=10):
-        self.set_num = set_num
-
-    def split_data_coord(self, coord_dt: pd.DataFrame, train_num: int):
-        if type(coord_dt) is not pd.DataFrame:
-            raise Exception("Coordinate data type is not pd.DataFrame.")
-        if type(train_num) is not int:
-            raise Exception("Train monitor number must be int.")
-        
-        np.random.seed(1000)
-        set_dataset = {}
-        for set_id in range(self.set_num):
-            train_coord = coord_dt["cmaq_id"].sample(train_num)
-            set_train_coord = coord_dt[np.isin(coord_dt["cmaq_id"], train_coord)]
-            set_test_coord = coord_dt[~np.isin(coord_dt["cmaq_id"], train_coord)]
-            set_dataset[set_id] = {"train": set_train_coord, "test": set_test_coord}
-        return set_dataset
 
 class MultipleGrid(SingleGrid):
     def __init__(self, grid_scale, cluster_method="GaussianMixture", cluster_num=10):
@@ -160,19 +141,21 @@ class MultipleGrid(SingleGrid):
         center_frame = pd.DataFrame(center_dt, columns=tag_names, index=whole_cluster.index)
         return super().split_train_test(center_frame, whole_cluster)
 
-class TargetMultiple(TargetSingle):
-    def __init__(self, grid_scale, set_num=10):
-        super().__init__(set_num)
-        self.grid_scale = grid_scale
+class TargetGrid:
+    def __init__(self, set_num=10):
+        self.set_num = set_num
 
-    def split_data_coord(self, tag_names: list, coord_dt: np.ndarray, train_num: int):
-        if coord_dt.shape[1] != (len(tag_names)*(self.grid_scale**2)):
-            raise Exception("Input data column number is inappropriate.")
-        if type(coord_dt) is not np.ndarray:
-            raise Exception("Coordinate data type is not np.ndarray.")
+    def split_data_coord(self, coord_dt: pd.DataFrame, train_num: int):
+        if type(coord_dt) is not pd.DataFrame:
+            raise Exception("Coordinate data type is not pd.DataFrame.")
         if type(train_num) is not int:
             raise Exception("Train monitor number must be int.")
-
-        center_coord = extract_center_data(tag_names, coord_dt, self.grid_scale)
-        center_frame = pd.DataFrame(center_coord, columns=tag_names)
-        return super().split_data_coord(center_frame, train_num)
+        
+        np.random.seed(1000)
+        set_dataset = {}
+        for set_id in range(self.set_num):
+            train_coord = coord_dt["cmaq_id"].sample(train_num)
+            set_train_coord = coord_dt[np.isin(coord_dt["cmaq_id"], train_coord)]
+            set_test_coord = coord_dt[~np.isin(coord_dt["cmaq_id"], train_coord)]
+            set_dataset[set_id] = {"train": set_train_coord, "test": set_test_coord}
+        return set_dataset
