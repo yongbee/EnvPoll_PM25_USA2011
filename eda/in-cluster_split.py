@@ -40,7 +40,7 @@ def _save_target_cmaqs(target_coord_set, grid_type, train_num):
 if __name__=='__main__':
     cluster_id = 4
     mn_range_list = [5,6,7,8,9,10,11,12,13,14,15,20,30,40,50]
-    grid_type = "single"
+    grid_type = "multiple"
 
     if grid_type == "single":
         monitoring_whole_data = pd.read_csv("data/us_monitoring.csv")[tag_names]
