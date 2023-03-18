@@ -26,6 +26,13 @@ def _plot_target_data(source_coord, target_coord_set, grid_type, train_num):
         plt.cla()
         plt.clf()
 
+def _save_source_cmaqs(source_coord, grid_type):
+    save_dir = f'data/split-data/{grid_type}/'
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+    save_file = f"{save_dir}source_cmaq.npy"
+    np.save(save_file, source_coord)
+
 def _save_target_cmaqs(target_coord_set, grid_type, train_num):
     for set_id in target_coord_set.keys():
         set_data = target_coord_set[set_id]
@@ -34,13 +41,13 @@ def _save_target_cmaqs(target_coord_set, grid_type, train_num):
         save_dir = f'data/split-data/{grid_type}/tl-cal-{train_num}/split-{set_id}/'
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
-        save_file = f"{save_dir}source_cal_label.npz"
+        save_file = f"{save_dir}target_cmaq.npz"
         np.savez(save_file, train=train_cmaq, test=test_cmaq)
 
 if __name__=='__main__':
     cluster_id = 4
     mn_range_list = [5,6,7,8,9,10,11,12,13,14,15,20,30,40,50]
-    grid_type = "multiple"
+    grid_type = "single"
 
     if grid_type == "single":
         monitoring_whole_data = pd.read_csv("data/us_monitoring.csv")[tag_names]
@@ -49,12 +56,14 @@ if __name__=='__main__':
         single_grid = SingleGrid("KMeans")
         _, coor_cluster = single_grid.cluster_grids(input_dt, label_dt)
     elif grid_type == "multiple":
-        input_dt = np.load("data/v10_170713_5x5_include_na_dataset.npz")["arr_0"]
-        label_dt = pd.Series(np.load("data/v10_170713_5x5_include_na_label.npz")["arr_0"])
+        input_dt = np.load("data/grid5_dataset_without_WA.npy")
+        input_dt = np.reshape(input_dt, (input_dt.shape[0], -1))
+        label_dt = pd.Series(np.load("data/grid5_target.npy")[:,2,2])
         multiple_grid = MultipleGrid(5, "KMeans")
         _, coor_cluster = multiple_grid.cluster_grids(tag_names[:-1], input_dt, label_dt)
     target_grid = TargetGrid()
     source_target_set = _source_target_split(coor_cluster, cluster_id)
+    _save_source_cmaqs(source_target_set["source"]["cmaq_id"], grid_type)
     for sp in mn_range_list:
         train_test_coord = target_grid.split_data_coord(source_target_set["target"], sp)
         _plot_target_data(source_target_set["source"], train_test_coord, grid_type, sp)

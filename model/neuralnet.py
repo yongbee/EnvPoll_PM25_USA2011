@@ -20,6 +20,25 @@ class FnnRegresson(nn.Module):
         out = self.layers(x).flatten()
         return out
 
+class CnnRegresson(nn.Module):
+    def __init__(self, **input_shapes):
+        super(CnnRegresson, self).__init__()
+        self.input_dim = input_shapes['input_dim']
+        self.width = input_shapes['width']
+        self.height = input_shapes['height']
+        self.layers = nn.Sequential(
+            nn.Conv2d(self.input_dim[0], 64, (3, 3), 1, "same"),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(self.width*self.height, 128),
+            nn.ELU(),
+            nn.Linear(128, 1),
+        )
+
+    def forward(self, x):
+        out = self.layers(x).flatten()
+        return out
+
 class NnModel:
     def __init__(self, model):
         self.model = model

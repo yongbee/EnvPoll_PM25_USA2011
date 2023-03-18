@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from data_process.spatial_validation import get_clusters, get_in_clusters
 from data_process.data import SingleData, tag_names
-from model.scikit import TrainTest
+from model.neuralnet import TrainTest
 
 def _save_multi_results(all_pred: dict, model_name: str):
     save_dir = f"result/{model_name}.npz"
@@ -13,7 +13,7 @@ def _save_split_results(all_pred: dict, model_name: str, save_name: str):
     np.savez(save_dir, **all_pred)
 
 if __name__=='__main__':
-    model_name = "GBM"
+    model_name = "FNN"
     id_type, save_type = "cmaq_id", "cluster4"
     # id_type, save_type = "index", "multiple_cluster"
     if save_type == "cluster4":
@@ -30,9 +30,11 @@ if __name__=='__main__':
         train_test_data_id, _ = get_clusters(input_dt, label_dt)
     elif id_type == "cmaq_id":
         train_test_data_id = get_in_clusters(data_path, train_num)
+
     single_data = SingleData(input_dt, label_dt, train_test_data_id, id_type, True)
-    model_train_test = TrainTest(model_name)
-    model_train_test.train(single_data.train_dt)
+    single_data.data_convert_loader()
+    model_train_test = TrainTest(model_name, single_data.input_dim)
+    model_train_test.train(single_data.train_dt, 25)
     all_pred = model_train_test.predict(single_data.valid_dt)
 
     if id_type == "index":

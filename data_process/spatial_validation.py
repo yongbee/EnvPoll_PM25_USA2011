@@ -56,6 +56,22 @@ def get_clusters(input_dt: pd.DataFrame, label_dt: pd.Series):
     _, train_test_data_id = single_grid.split_train_test(input_dt, whole_cluster)
     return train_test_data_id, single_grid.cluster_model
 
+def get_in_clusters(data_path: str, train_num: int):
+    target_path = f"{data_path}tl-cal-{train_num}/"
+    train_test_id = {}
+
+    source_cmaq = np.load(f"{data_path}source_cmaq.npy")
+    for set_id in range(10):
+        target_cmaq = np.load(f"{target_path}split-{set_id}/target_cmaq.npz")
+        train_cmaq = target_cmaq["train"]
+        test_cmaq = target_cmaq["test"]
+        train_test_id[set_id] = {
+            "train_in_cluster":train_cmaq,
+            "train_out_cluster":source_cmaq,
+            "test_cluster":test_cmaq
+        }
+    return train_test_id
+
 class SingleGrid:
     def __init__(self, cluster_method="GaussianMixture", cluster_num=10):
         self.cluster_num = cluster_num

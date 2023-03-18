@@ -1,7 +1,8 @@
 import numpy as np
 import pandas as pd
 from data_process.spatial_validation import get_clusters
-from model.result import SingleAnalyzer
+from data_process.data import tag_names
+from model.result import SingleAnalyzerClusterModel
 
 def _get_input_label(input_dt: pd.DataFrame, label_dt: pd.DataFrame, train_test_data_id: dict):
     all_inputs, all_labels = [], []
@@ -22,10 +23,7 @@ def _get_results(model_name: str, index):
     return all_pred_data
 
 if __name__=='__main__':
-    model_name = "GBM"
-    tag_names = ['day', 'month', 'cmaq_x', 'cmaq_y', 'cmaq_id', 'rid', 'elev', 'forest_cover', 'pd', 'local', 'limi', 'high', 'is', 
-    'nldas_pevapsfc','nldas_pressfc', 'nldas_cape', 'nldas_ugrd10m', 'nldas_vgrd10m', 'nldas_tmp2m', 'nldas_rh2m', 'nldas_dlwrfsfc', 
-    'nldas_dswrfsfc', 'nldas_pcpsfc', 'nldas_fpcsfc', 'gc_aod', 'aod_value', 'emissi11_pm25', 'pm25_value_k', 'pm25_value']
+    model_name = "GBM_multiple_cluster"
     monitoring_whole_data = pd.read_csv("data/us_monitoring.csv")[tag_names]
     coord_whole_data = pd.read_csv("data/largeUS_coords_pred.csv", index_col=0)
     whole_coord = coord_whole_data.drop_duplicates().reset_index(drop=True)[['cmaq_x', 'cmaq_y']]
@@ -36,7 +34,7 @@ if __name__=='__main__':
     all_input, all_label = _get_input_label(input_dt, label_dt, train_test_data_id)
     all_pred = _get_results(model_name, all_label.index)
 
-    single_analyzer = SingleAnalyzer(model_name, cluster_model, whole_coord, all_input, all_label, all_pred, train_test_data_id)
+    single_analyzer = SingleAnalyzerClusterModel(model_name, cluster_model, whole_coord, all_input, all_label, all_pred, train_test_data_id)
     print(single_analyzer.cluster_info)
     single_analyzer.scatter_label_pred()
     single_analyzer.plot_whole_cluster(True, 1)
