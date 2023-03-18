@@ -1,23 +1,8 @@
 import numpy as np
-import pandas as pd
-from sklearn.metrics import r2_score
 import torch
 from torch import nn
 from torch.nn import MSELoss
-from torch.utils.data import Dataset, DataLoader
-from model.utils import cluster_train_test_index, data_drop_na, normalize_train_test
-
-class InputOutputSet(Dataset):
-    def __init__(self, input_dt, output_dt):
-        super().__init__()
-        self.input_dt = input_dt
-        self.output_dt = output_dt
-
-    def __getitem__(self, i):
-        return self.input_dt[i], self.output_dt[i]
-
-    def __len__(self):
-        return len(self.input_dt)
+from torch.utils.data import DataLoader
 
 class FnnRegresson(nn.Module):
     def __init__(self, **input_shapes):
@@ -32,58 +17,84 @@ class FnnRegresson(nn.Module):
         )
 
     def forward(self, x):
-        out = self.layers(x)
+        out = self.layers(x).flatten()
         return out
 
-class TrainTest:
-    def __init__(self, model_name: str, normalize=False, **input_shapes):
-        self.model_name = model_name
-        self.normalize = normalize
-        self.input_shapes = input_shapes
+class CnnRegresson(nn.Module):
+    def __init__(self, **input_shapes):
+        super(CnnRegresson, self).__init__()
+        self.input_dim = input_shapes['input_dim']
+        self.width = input_shapes['width']
+        self.height = input_shapes['height']
+        self.layers = nn.Sequential(
+            nn.Conv2d(self.input_dim[0], 64, (3, 3), 1, "same"),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(self.width*self.height, 128),
+            nn.ELU(),
+            nn.Linear(128, 1),
+        )
+
+    def forward(self, x):
+        out = self.layers(x).flatten()
+        return out
+
+class NnModel:
+    def __init__(self, model):
+        self.model = model
         self.loss_function = MSELoss()
 
-    def train_model(self, train_loader):
-        optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-        if self.model_name == "FNN":
-            model = FnnRegresson(self.input_shapes)
+    def fit(self, train_loader: DataLoader, epoch: int):
+        optimizer = torch.optim.Adam(self.model.parameters(), lr=0.001)
+        
+        for e in range(epoch):
+            total_data_num = 0
+            total_loss = 0
+            for train_x, train_y in train_loader:
+                train_x = train_x.float()
+                train_y = train_y.float()
+                optimizer.zero_grad()
+                pred = self.model(train_x).float()
+                loss = self.loss_function(pred, train_y)
+                total_loss += (loss*train_x.size(0)).item()
+                total_data_num += train_x.size(0)
+                loss.backward()
+                optimizer.step()
+            mean_loss = total_loss/total_data_num
+            print(f"Epoch{e+1} - Mean Loss: {mean_loss}")
 
-        total_data_num = 0
-        total_loss = 0
-        for train_x, train_y in train_loader:
-            train_x = train_x.float()
-            train_y = train_y.float()
-            optimizer.zero_grad()
-            pred = model(train_x).float()
-            loss = self.loss_function(pred, train_y)
-            total_loss += (loss*train_x.size(0)).item()
-            total_data_num += train_x.size(0)
-            loss.backward()
-            optimizer.step()
-        return model
+    def predict(self, pred_loader: DataLoader):
+        all_pred_vals = []
+        for pred_x, _ in pred_loader:
+            pred_x = pred_x.float()
+            pred_val = self.model(pred_x).float()
+            all_pred_vals.append(pred_val.detach().numpy())
+        all_pred_vals = np.hstack(all_pred_vals)
+        return all_pred_vals
 
-    def predict_model(self, model, test_loader):
-        current_test_pred = []
-        for test_x, test_y in test_loader:
-            test_pred = model(test_x.float())
-            current_test_pred.append(test_pred.detach().numpy())
-        current_test_pred = np.vstack(current_test_pred)
-        return current_test_pred
+class TrainTest:
+    def __init__(self, model_name: str, input_dim: dict):
+        self.model_name = model_name
+        self.input_dim = input_dim
 
-    def train_predict(self, input_dt: pd.DataFrame, label_dt: pd.Series, train_test_data_id: dict):
-        all_pred_info = {}
-        for cluster_id in train_test_data_id.keys():
-            print(f"Cluster{cluster_id} Train and Test")
-            set_index = train_test_data_id[cluster_id]
-            train_index, test_index = cluster_train_test_index(set_index)
-            train_dt, train_label = input_dt.loc[train_index], label_dt[train_index]
-            test_dt, test_label = input_dt.loc[test_index], label_dt[test_index]
-            train_dt, test_dt = data_drop_na(train_dt, test_dt)
-            if self.normalize:
-                train_dt, test_dt = normalize_train_test(train_dt, test_dt)
+    def define_model(self, input_dim):
+        if self.model_name == 'FNN':
+            model = FnnRegresson(input_dim=input_dim)
+        return NnModel(model)
 
-            cluster_model = self.train_model(train_dt, train_label)
-            test_pred = self.predict_model(cluster_model, test_dt)
-            all_pred_info[f"cluster{cluster_id}"] = test_pred
-            r2_val = round(r2_score(test_label, test_pred), 4)
-            print(f"R-squared: {r2_val}")
-        return all_pred_info
+    def train(self, train_dataset: dict, epoch: int):
+        self.all_models = {}
+        for cluster_id in train_dataset.keys():
+            print(f"Cluster{cluster_id} Train")
+            data_loader = train_dataset[cluster_id]
+            model = self.define_model(self.input_dim[cluster_id])
+            model.fit(data_loader, epoch)
+            self.all_models[cluster_id] = model
+
+    def predict(self, pred_dataset: dict):
+        all_pred_vals = {}
+        for cluster_id in pred_dataset.keys():
+            data_loader = pred_dataset[cluster_id]
+            pred_val = self.all_models[cluster_id].predict(data_loader)
+            all_pred_vals[f"cluster{cluster_id}"] = pred_val
+        return all_pred_vals
