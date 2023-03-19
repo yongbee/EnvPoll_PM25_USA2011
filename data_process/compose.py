@@ -129,8 +129,8 @@ class MultiGridCompose:
                 if len(grid_date_data) < 1:
                     continue
                 if pm_target_compose:
-                    date_grid_data[date_grids_cmaq==grid_id,:] = grid_date_data.drop(columns=['pm25_value_k'])
-                    date_grid_target[date_grids_cmaq==grid_id] = grid_date_data['pm25_value_k']
+                    date_grid_data[date_grids_cmaq==grid_id,:] = grid_date_data.drop(columns=['pm25_value'])
+                    date_grid_target[date_grids_cmaq==grid_id] = grid_date_data['pm25_value']
                 else:
                     date_grid_data[date_grids_cmaq==grid_id,:] = grid_date_data
             all_grid_data.append(date_grid_data)
