@@ -2,17 +2,13 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.spatial import distance_matrix
-
-def _create_distance_matrix(dt1: pd.DataFrame, dt2: pd.DataFrame):
-    all_distance = distance_matrix(dt1, dt2)
-    all_distance[all_distance==0] = np.inf
-    return all_distance
+from data_process.data import create_distance_matrix
 
 def _get_distance_statistic(whole_xy: pd.DataFrame):
     cut_len = 5000
     all_min_distance = []
     for set_id in range(len(whole_xy)//cut_len + 1):
-        all_distance = _create_distance_matrix(whole_xy.iloc[set_id*cut_len:(set_id+1)*cut_len].values, whole_xy.values)
+        all_distance = create_distance_matrix(whole_xy.iloc[set_id*cut_len:(set_id+1)*cut_len].values, whole_xy.values)
         all_min_distance.append(all_distance.min(axis=1))
     all_min_distance = np.hstack(all_min_distance)
     return all_min_distance
