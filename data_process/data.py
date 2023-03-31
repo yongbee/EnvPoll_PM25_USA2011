@@ -61,19 +61,16 @@ class WeightAverage:
         self.valid_weight = 1 / create_distance_matrix(valid_cmaq, train_cmaq)
 
     def _date_weight_average(self, data: pd.DataFrame, weight, train_label, train_cmaq):
-        all_wa = []
-        for cmaq in data["cmaq_id"]:
-            cmaq_weight = weight[cmaq]
-            exist_cmaq_weight = cmaq_weight[np.isin(cmaq_weight.index, train_cmaq)]
-            weight_label = train_label[exist_cmaq_weight.index]
-            weight_sum = np.sum(exist_cmaq_weight)
-            cmaq_wa = np.sum(exist_cmaq_weight*weight_label)/weight_sum
-            all_wa.append(cmaq_wa)
-        return all_wa
+        exist_weight = weight.loc[data["cmaq_id"], np.isin(weight.columns, train_cmaq)]
+        weight_label = train_label[exist_weight.columns]
+        weight_sum = np.sum(exist_weight, axis=1)
+        cmaq_wa = np.sum(exist_weight*weight_label, axis=1)/weight_sum
+        cmaq_wa.index = data.index
+        return cmaq_wa
         
     def _compute_date_wa(self, date):
-        date_train_data = self.train_data.loc[self.train_data["day"]==date]
-        date_valid_data = self.valid_data.loc[self.valid_data["day"]==date]
+        date_train_data = self.train_data.loc[self.train_data["day"]==date].copy()
+        date_valid_data = self.valid_data.loc[self.valid_data["day"]==date].copy()
         date_train_label = self.train_label.loc[self.train_data["day"]==date]
         date_train_label.index = date_train_data["cmaq_id"]
         train_wa = self._date_weight_average(date_train_data, self.train_weight, date_train_label, date_train_data["cmaq_id"])
@@ -121,6 +118,7 @@ class SingleData:
         self.train_dt, self.valid_dt = {}, {}
         self.input_dim = {}
         for cluster_id in self.train_valid_data_id.keys():
+            print(f"cluster{cluster_id} compsing...")
             set_index = self.train_valid_data_id[cluster_id]
             train_index, valid_index = cluster_train_valid_index(set_index)
             train_input, train_label = self.input_dt.loc[train_index], self.label_dt[train_index]
@@ -136,6 +134,7 @@ class SingleData:
         self.train_dt, self.valid_dt = {}, {}
         self.input_dim = {}
         for cluster_id in self.train_valid_data_id.keys():
+            print(f"cluster{cluster_id} compsing...")
             set_index = self.train_valid_data_id[cluster_id]
             train_index, valid_index = cluster_train_valid_index(set_index)
             train_input, train_label = self.input_dt.loc[np.isin(self.input_dt["cmaq_id"], train_index)], self.label_dt[np.isin(self.input_dt["cmaq_id"], train_index)]
