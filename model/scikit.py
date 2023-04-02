@@ -46,15 +46,16 @@ class TrainTest:
             self.all_models[cluster_id] = model
 
     def predict(self, pred_dataset: dict):
-        all_pred_vals = {}
+        all_pred_vals, all_labels = {}, {}
         for cluster_id in pred_dataset.keys():
             input_dt = pred_dataset[cluster_id]["input"]
             label_dt = pred_dataset[cluster_id]["label"]
             pred_val = self.all_models[cluster_id].predict(input_dt)
             all_pred_vals[f"cluster{cluster_id}"] = pred_val
+            all_labels[f"cluster{cluster_id}"] = np.array(label_dt)
             mse_val = mean_squared_error(np.array(label_dt), pred_val)
             print(f"MSE value: {mse_val}")
-        return all_pred_vals
+        return all_pred_vals, all_labels
 
 class HyperparameterTest(TrainTest):
     def __init__(self, model_name: str, parameters):
