@@ -18,7 +18,7 @@ def _save_accuracy(all_label, all_pred, model_name, train_num):
     save_dir = f"result/target cluster split/"
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
-    file_name = f"{model_name}_mean_accuracy.csv"
+    file_name = f"{model_name}_with_wa_mean_accuracy.csv"
     file_full_path = save_dir + file_name
     all_r2, all_mse = [], []
     for cluster_id in all_label.keys():
@@ -36,19 +36,19 @@ def _save_accuracy(all_label, all_pred, model_name, train_num):
     file_dt.loc[train_num] = [mean_r2, mean_mse]
     file_dt.to_csv(file_full_path)
 
-def _multiple_cluster_model(model_name, input_dt, label_dt):
+def _multiple_cluster_model(model_name, input_dt, label_dt, weight_average):
     train_test_data_id, _ = get_clusters(input_dt, label_dt)
-    single_data = SingleData(input_dt, label_dt, train_test_data_id, "index", True)
+    single_data = SingleData(input_dt, label_dt, train_test_data_id, "index", True, weight_average)
     model_train_test = TrainTest(model_name)
     model_train_test.train(single_data.train_dt)
     all_pred = model_train_test.predict(single_data.valid_dt)
     _save_multi_results(all_pred, model_name)
 
-def _one_cluster_model(model_name, train_num, input_dt, label_dt, save_preds=False):
+def _one_cluster_model(model_name, train_num, input_dt, label_dt, weight_average, save_preds=False):
     data_path = "data/split-data/single/"
     save_name = f"cmaq_id-{train_num}"
     train_test_data_id = get_in_clusters(data_path, train_num)
-    single_data = SingleData(input_dt, label_dt, train_test_data_id, "cmaq_id", True)
+    single_data = SingleData(input_dt, label_dt, train_test_data_id, "cmaq_id", True, weight_average)
     model_train_test = TrainTest(model_name)
     model_train_test.train(single_data.train_dt)
     all_pred, all_label = model_train_test.predict(single_data.valid_dt)
@@ -59,31 +59,12 @@ def _one_cluster_model(model_name, train_num, input_dt, label_dt, save_preds=Fal
 
 if __name__=='__main__':
     model_name = "GBM"
-    train_numbers = [5, 7, 9, 11, 13, 15, 17, 20, 23, 27, 31, 35, 40, 45, 50]
-    # id_type, save_type = "cmaq_id", "cluster4"
-    # # id_type, save_type = "index", "multiple_cluster"
-    # if save_type == "cluster4":
-    #     data_path, train_num = "data/split-data/single/", 10
-    #     save_name = f"{save_type}-{train_num}"
-    # elif save_type == "multiple_cluster":
-    #     save_name = save_type
+    weight_average = True
+    train_numbers = [5, 10, 15, 20, 30, 40, 50]
 
     monitoring_whole_data = pd.read_csv("data/us_monitoring.csv")[tag_names]
     input_dt = monitoring_whole_data.drop(columns=["pm25_value"])
     label_dt = monitoring_whole_data["pm25_value"]
 
-    # if id_type == "index":
-    #     train_test_data_id, _ = get_clusters(input_dt, label_dt)
-    # elif id_type == "cmaq_id":
-    #     train_test_data_id = get_in_clusters(data_path, train_num)
-    # single_data = SingleData(input_dt, label_dt, train_test_data_id, id_type, True)
-    # model_train_test = TrainTest(model_name)
-    # model_train_test.train(single_data.train_dt)
-    # all_pred = model_train_test.predict(single_data.valid_dt)
-
-    # if id_type == "index":
-    #     _save_multi_results(all_pred, model_name)
-    # elif id_type == "cmaq_id":
-    #     _save_split_results(all_pred, model_name, save_name)
     for train_num in train_numbers:
-        _one_cluster_model(model_name, train_num, input_dt, label_dt)
+        _one_cluster_model(model_name, train_num, input_dt, label_dt, weight_average)
