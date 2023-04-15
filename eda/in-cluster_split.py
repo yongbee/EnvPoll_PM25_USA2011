@@ -46,7 +46,7 @@ def _save_target_cmaqs(target_coord_set, grid_type, train_num):
 
 if __name__=='__main__':
     cluster_id = 4
-    mn_range_list = [5,6,7,8,9,10,11,12,13,14,15,20,30,40,50]
+    mn_range_list = [5, 7, 9, 11, 13, 15, 17, 20, 23, 27, 31, 35, 40, 45, 50]
     grid_type = "single"
 
     if grid_type == "single":

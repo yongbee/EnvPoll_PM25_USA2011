@@ -103,10 +103,11 @@ class InputOutputSet(Dataset):
         return len(self.input_dt)
 
 class SingleData:
-    def __init__(self, input_dt: pd.DataFrame, label_dt: pd.Series, train_valid_data_id: dict, id_type: str, normalize=False):
+    def __init__(self, input_dt: pd.DataFrame, label_dt: pd.Series, train_valid_data_id: dict, id_type: str, normalize=False, weight_average_compute=False):
         self.input_dt = input_dt
         self.label_dt = label_dt
         self.train_valid_data_id = train_valid_data_id
+        self.weight_average_compute = weight_average_compute
         if id_type == "index":
             self.split_train_valid_index()
         elif id_type == "cmaq_id":
@@ -124,8 +125,9 @@ class SingleData:
             train_input, train_label = self.input_dt.loc[train_index], self.label_dt[train_index]
             valid_input, valid_label = self.input_dt.loc[valid_index], self.label_dt[valid_index]
             train_input, valid_input = _drop_useless_col(train_input, valid_input)
-            weight_average = WeightAverage(train_input, valid_input, train_label)
-            train_input, valid_input = weight_average.weight_inputs
+            if self.weight_average_compute:
+                weight_average = WeightAverage(train_input, valid_input, train_label)
+                train_input, valid_input = weight_average.weight_inputs
             self.train_dt[cluster_id] = {"input":train_input, "label":train_label}
             self.valid_dt[cluster_id] = {"input":valid_input, "label":valid_label}
             self.input_dim[cluster_id] = train_input.shape[1]
@@ -140,8 +142,9 @@ class SingleData:
             train_input, train_label = self.input_dt.loc[np.isin(self.input_dt["cmaq_id"], train_index)], self.label_dt[np.isin(self.input_dt["cmaq_id"], train_index)]
             valid_input, valid_label = self.input_dt.loc[np.isin(self.input_dt["cmaq_id"], valid_index)], self.label_dt[np.isin(self.input_dt["cmaq_id"], valid_index)]
             train_input, valid_input = _drop_useless_col(train_input, valid_input)
-            weight_average = WeightAverage(train_input, valid_input, train_label)
-            train_input, valid_input = weight_average.weight_inputs
+            if self.weight_average_compute:
+                weight_average = WeightAverage(train_input, valid_input, train_label)
+                train_input, valid_input = weight_average.weight_inputs
             self.train_dt[cluster_id] = {"input":train_input, "label":train_label}
             self.valid_dt[cluster_id] = {"input":valid_input, "label":valid_label}
             self.input_dim[cluster_id] = train_input.shape[1]
