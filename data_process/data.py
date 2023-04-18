@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 from scipy.spatial import distance_matrix
 from torch.utils.data import Dataset, DataLoader
 
@@ -120,32 +121,24 @@ class StationAllocate:
         cmaq_id_data["PM25"] = 0
         cmaq_id_train = train_data.set_index("cmaq_id")
         cmaq_id_train["PM25"] = train_label
-        date_stations = sort_stations.loc[np.isin(sort_stations.index, cmaq_id_data.index)]
+        date_stations = sort_stations.loc[cmaq_id_data.index]
 
-        allocate_number = pd.Series(0, cmaq_id_data.index)
+        date_exist_stations = []
+        for id in date_stations.index:
+            row_station = date_stations.loc[id]
+            row_exist_stations = row_station[np.isin(row_station, cmaq_id_train.index)].reset_index(drop=True)
+            date_exist_stations.append(row_exist_stations)
+        date_exist_stations = pd.concat(date_exist_stations, axis=1).T
+
         station_data = []
         for s in range(self.station_num):
-            not_allocated_bool = pd.Series(True, cmaq_id_data.index)
-            num_station_data = pd.DataFrame(index=cmaq_id_data.index, columns=cmaq_id_train.columns)
-            while not_allocated_bool.sum() > 0:
-                unique_nums = np.unique(allocate_number[not_allocated_bool])
-                if max(unique_nums) > date_stations.columns[-1]:
-                    raise Exception("The number of train data in the date is not enough.")
-                for num in unique_nums:
-                    num_index = cmaq_id_data.index[(allocate_number==num) & (not_allocated_bool)]
-                    nearest_cmaq = date_stations[num].loc[num_index]
-                    allocate_index = nearest_cmaq.index[np.isin(nearest_cmaq, cmaq_id_train.index)]
-                    not_allocated_bool.loc[allocate_index] = False
-                    allocate_cmaq = nearest_cmaq[allocate_index]
-                    num_station_data.loc[allocate_cmaq.index] = np.array(cmaq_id_train.loc[allocate_cmaq])
-                allocate_number[not_allocated_bool] += 1
-            station_data.append(num_station_data.copy())
-            allocate_number += 1
+            near_data = cmaq_id_train.loc[date_exist_stations[s]]
+            station_data.append(near_data)
         station_data.insert(len(station_data)//2, cmaq_id_data)
         stack_station_data = np.stack(station_data, -1)
         return stack_station_data
         
-    def _compute_date_wa(self, date):
+    def _compute_date_set(self, date):
         date_train_data = self.train_data.loc[self.train_data["day"]==date].copy()
         date_valid_data = self.valid_data.loc[self.valid_data["day"]==date].copy()
         date_train_label = self.train_label.loc[self.train_data["day"]==date]
@@ -159,12 +152,12 @@ class StationAllocate:
         all_train_data, all_valid_data = [], []
         for date_num, date in enumerate(all_dates):
             print(f"date {date_num}")
-            date_train, date_valid = self._compute_date_wa(date)
+            date_train, date_valid = self._compute_date_set(date)
             all_train_data.append(date_train)
             all_valid_data.append(date_valid)
         all_train_data = np.vstack(all_train_data)
         all_valid_data = np.vstack(all_valid_data)
-        self.near_inputs = (all_train_data, all_valid_data)
+        self.composed_inputs = (all_train_data, all_valid_data)
 
 class InputOutputSet(Dataset):
     def __init__(self, input_dt, output_dt):
@@ -313,10 +306,13 @@ class MultipleData:
             self.valid_dt[cluster_id] = valid_loader
 
 class NearStationData:
-    def __init__(self, input_dt: pd.DataFrame, label_dt: pd.Series, train_valid_data_id: dict, exclude_cols=[], normalize=False):
+    def __init__(self, input_dt: pd.DataFrame, label_dt: pd.Series, train_valid_data_id: dict, cluster_id: int, data_path: str, compose_data: bool, exclude_cols=[], normalize=False):
         self.input_dt = input_dt
         self.label_dt = label_dt
         self.train_valid_data_id = train_valid_data_id
+        self.cluster_id = cluster_id
+        self.data_path = data_path
+        self.compose_data = compose_data
         self.exclude_cols = exclude_cols
         self.split_train_valid_cmaq()
         if normalize:
@@ -325,25 +321,21 @@ class NearStationData:
 
     def split_train_valid_cmaq(self):
         self.train_dt, self.valid_dt = {}, {}
-        self.input_dim = {}
-        for cluster_id in self.train_valid_data_id.keys():
-            set_index = self.train_valid_data_id[cluster_id]
-            train_index, valid_index = cluster_train_valid_index(set_index)
-            train_input, train_label = self.input_dt.loc[np.isin(self.input_dt["cmaq_id"], train_index)], self.label_dt[np.isin(self.input_dt["cmaq_id"], train_index)]
-            valid_input, valid_label = self.input_dt.loc[np.isin(self.input_dt["cmaq_id"], valid_index)], self.label_dt[np.isin(self.input_dt["cmaq_id"], valid_index)]
-            train_input, valid_input = _drop_useless_col(train_input, valid_input)
-            self.train_dt[cluster_id] = {"input":train_input, "label":train_label}
-            self.valid_dt[cluster_id] = {"input":valid_input, "label":valid_label}
-            self.input_dim[cluster_id] = train_input.shape[1]
+        set_index = self.train_valid_data_id[self.cluster_id]
+        train_index, valid_index = cluster_train_valid_index(set_index)
+        train_input, train_label = self.input_dt.loc[np.isin(self.input_dt["cmaq_id"], train_index)], self.label_dt[np.isin(self.input_dt["cmaq_id"], train_index)]
+        valid_input, valid_label = self.input_dt.loc[np.isin(self.input_dt["cmaq_id"], valid_index)], self.label_dt[np.isin(self.input_dt["cmaq_id"], valid_index)]
+        train_input, valid_input = _drop_useless_col(train_input, valid_input)
+        self.train_dt[self.cluster_id] = {"input":train_input, "label":train_label}
+        self.valid_dt[self.cluster_id] = {"input":valid_input, "label":valid_label}
         
     def _normalize_train_valid(self):
-        for cluster_id in self.train_dt.keys():
-            train_input = self.train_dt[cluster_id]["input"]
-            valid_input = self.valid_dt[cluster_id]["input"]
-            mean, std = train_input.mean(axis=0), train_input.std(axis=0)
-            mean[self.exclude_cols], std[self.exclude_cols] = 0, 1
-            self.train_dt[cluster_id]["input"] = (train_input - mean) / std
-            self.valid_dt[cluster_id]["input"] = (valid_input - mean) / std
+        train_input = self.train_dt[self.cluster_id]["input"]
+        valid_input = self.valid_dt[self.cluster_id]["input"]
+        mean, std = train_input.mean(axis=0), train_input.std(axis=0)
+        mean[self.exclude_cols], std[self.exclude_cols] = 0, 1
+        self.train_dt[self.cluster_id]["input"] = (train_input - mean) / std
+        self.valid_dt[self.cluster_id]["input"] = (valid_input - mean) / std
 
     # def _remove_cols(self, exclude_cols):
     #     for cluster_id in self.train_dt.keys():
@@ -353,21 +345,40 @@ class NearStationData:
     #         self.valid_dt[cluster_id]["input"] = valid_input.drop(columns=exclude_cols)
 
     def _allocate_near_data(self):
-        for cluster_id in self.train_dt.keys():
-            print(f"cluster{cluster_id} compsing...")
-            train_input = self.train_dt[cluster_id]["input"]
-            valid_input = self.valid_dt[cluster_id]["input"]
-            train_label = self.train_dt[cluster_id]["label"]
+        self.input_shape = {}
+        print(f"cluster{self.cluster_id} compsing...")
+        train_input = self.train_dt[self.cluster_id]["input"]
+        valid_input = self.valid_dt[self.cluster_id]["input"]
+        train_label = self.train_dt[self.cluster_id]["label"]
+        if self.compose_data:
             station_allocate = StationAllocate(train_input, valid_input, train_label, self.exclude_cols, 6)
-            
+            train_data, valid_data = station_allocate.composed_inputs
+            np.savez(f"{self.data_path}nearest_dataset.npz", train=train_data, valid=valid_data)
+        else:
+            save_npz = np.load(f"{self.data_path}nearest_dataset.npz")
+            train_data, valid_data = save_npz["train"], save_npz["valid"]
+        self.train_dt[self.cluster_id]["input"] = train_data
+        self.valid_dt[self.cluster_id]["input"] = valid_data
+        self.input_shape[self.cluster_id] = train_data.shape[1:]
 
-    def data_convert_loader(self):
-        for cluster_id in self.train_dt.keys():
-            train_input = np.array(self.train_dt[cluster_id]["input"])
-            train_label = np.array(self.train_dt[cluster_id]["label"])
-            valid_input = np.array(self.valid_dt[cluster_id]["input"])
-            valid_label = np.array(self.valid_dt[cluster_id]["label"])
-            train_loader = _convert_loader(train_input, train_label, 128)
-            valid_loader = _convert_loader(valid_input, valid_label, 128)
-            self.train_dt[cluster_id] = train_loader
-            self.valid_dt[cluster_id] = valid_loader
+    def regression_data_convert_loader(self):
+        regression_train_dt, regression_valid_dt = {}, {}
+        train_input = np.array(self.train_dt[self.cluster_id]["input"])
+        train_label = np.array(self.train_dt[self.cluster_id]["label"])
+        valid_input = np.array(self.valid_dt[self.cluster_id]["input"])
+        valid_label = np.array(self.valid_dt[self.cluster_id]["label"])
+        train_loader = _convert_loader(train_input, train_label, 128)
+        valid_loader = _convert_loader(valid_input, valid_label, 128)
+        regression_train_dt[self.cluster_id] = train_loader
+        regression_valid_dt[self.cluster_id] = valid_loader
+        return regression_train_dt, regression_valid_dt
+
+    def autoencode_data_convert_loader(self):
+        autoencode_train_dt, autoencode_valid_dt = {}, {}
+        train_input = np.array(self.train_dt[self.cluster_id]["input"])
+        valid_input = np.array(self.valid_dt[self.cluster_id]["input"])
+        train_loader = DataLoader(train_input, batch_size=128, shuffle=False, pin_memory=True)
+        valid_loader = DataLoader(valid_input, batch_size=128, shuffle=False, pin_memory=True)
+        autoencode_train_dt[self.cluster_id] = train_loader
+        autoencode_valid_dt[self.cluster_id] = valid_loader
+        return autoencode_train_dt, autoencode_valid_dt

@@ -4,6 +4,7 @@ import pandas as pd
 from sklearn.metrics import r2_score, mean_absolute_error
 from data_process.spatial_validation import get_in_clusters
 from data_process.data import NearStationData, tag_names
+from model.autoencoder import AutoencoderTrainTest
 from model.scikit import TrainTest
 
 def _save_split_results(all_pred: dict, model_name: str, save_name: str):
@@ -33,17 +34,25 @@ def _save_accuracy(all_label, all_pred, model_name, train_num):
     file_dt.to_csv(file_full_path)
 
 def _one_cluster_model(model_name, train_num, input_dt, label_dt, save_preds=False):
+    cluster_id = 0
     data_path = "data/split-data/single/"
+    compose_path = f"{data_path}tl-cal-{train_num}/split-{cluster_id}/"
     save_name = f"cmaq_id-{train_num}"
     train_test_data_id = get_in_clusters(data_path, train_num)
-    single_data = NearStationData(input_dt, label_dt, train_test_data_id, ["cmaq_id"], True)
-    model_train_test = TrainTest(model_name)
-    model_train_test.train(single_data.train_dt)
-    all_pred, all_label = model_train_test.predict(single_data.valid_dt)
-    if save_preds:
-        _save_split_results(all_pred, model_name, save_name)
-    else:
-        _save_accuracy(all_label, all_pred, model_name, train_num)
+    near_station_data = NearStationData(input_dt, label_dt, train_test_data_id, cluster_id, compose_path, False, ["cmaq_id"], True)
+    autoencoder_train_test = AutoencoderTrainTest("CNN", 2, near_station_data.input_shape)
+    autoencode_train_dt, autoencode_valid_dt = near_station_data.autoencode_data_convert_loader()
+    autoencoder_train_test.train(autoencode_train_dt, 10)
+    train_encode = autoencoder_train_test.encode(autoencode_train_dt)
+    valid_encode = autoencoder_train_test.encode(autoencode_valid_dt)
+
+    # model_train_test = TrainTest(model_name)
+    # model_train_test.train(near_station_data.train_dt)
+    # all_pred, all_label = model_train_test.predict(near_station_data.valid_dt)
+    # if save_preds:
+    #     _save_split_results(all_pred, model_name, save_name)
+    # else:
+    #     _save_accuracy(all_label, all_pred, model_name, train_num)
 
 if __name__=='__main__':
     model_name = "GBM"

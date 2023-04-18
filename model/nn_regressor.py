@@ -39,7 +39,7 @@ class CnnRegresson(nn.Module):
         out = self.layers(x).flatten()
         return out
 
-class NnModel:
+class RegressionModel:
     def __init__(self, model):
         self.model = model
         self.loss_function = MSELoss()
@@ -72,7 +72,7 @@ class NnModel:
         all_pred_vals = np.hstack(all_pred_vals)
         return all_pred_vals
 
-class TrainTest:
+class RegressionTrainTest:
     def __init__(self, model_name: str, input_dim: dict):
         self.model_name = model_name
         self.input_dim = input_dim
@@ -80,7 +80,7 @@ class TrainTest:
     def define_model(self, input_dim):
         if self.model_name == 'FNN':
             model = FnnRegresson(input_dim=input_dim)
-        return NnModel(model)
+        return RegressionModel(model)
 
     def train(self, train_dataset: dict, epoch: int):
         self.all_models = {}
