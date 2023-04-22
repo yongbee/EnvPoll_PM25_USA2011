@@ -15,26 +15,30 @@ class AutoencoderCnn(nn.Module):
 
     def _define_encoder(self):
         self.enocde_layer1 = nn.Conv1d(in_channels=self.input_dim, out_channels=16, kernel_size=1)
-        self.encode_layer2 = nn.Conv1d(in_channels=16, out_channels=4, kernel_size=3, padding="same")
-        self.encode_layer3 = nn.Linear(4*self.input_len, self.encode_dim*self.input_len)
+        self.encode_layer2 = nn.Conv1d(in_channels=16, out_channels=8, kernel_size=1)
+        self.encode_layer3 = nn.Conv1d(in_channels=8, out_channels=4, kernel_size=3, padding="same")
+        self.encode_layer4 = nn.Linear(4*self.input_len, self.encode_dim*self.input_len)
 
     def _define_decoder(self):
         self.deocde_layer1 = nn.Conv1d(in_channels=self.encode_dim, out_channels=4, kernel_size=3, padding="same")
-        self.decode_layer2 = nn.Conv1d(in_channels=4, out_channels=16, kernel_size=1)
-        self.decode_layer3 = nn.Conv1d(in_channels=16, out_channels=self.input_dim, kernel_size=1)
+        self.decode_layer2 = nn.Conv1d(in_channels=4, out_channels=8, kernel_size=3, padding="same")
+        self.decode_layer3 = nn.Conv1d(in_channels=8, out_channels=16, kernel_size=1)
+        self.decode_layer4 = nn.Conv1d(in_channels=16, out_channels=self.input_dim, kernel_size=1)
 
     def encode(self, x):
         x = torch.relu(self.enocde_layer1(x))
         x = torch.relu(self.encode_layer2(x))
+        x = torch.relu(self.encode_layer3(x))
         x = x.view(-1, 4*self.input_len)
-        x = self.encode_layer3(x)
+        x = self.encode_layer4(x)
         return x
     
     def decode(self, x):
         x = x.view(-1, self.encode_dim, self.input_len)
         x = torch.relu(self.deocde_layer1(x))
         x = torch.relu(self.decode_layer2(x))
-        x = self.decode_layer3(x)
+        x = torch.relu(self.decode_layer3(x))
+        x = self.decode_layer4(x)
         return x
 
     def forward(self, x):
@@ -48,7 +52,7 @@ class AutoencodeModel:
         self.loss_function = MSELoss()
 
     def fit(self, train_loader: DataLoader, epoch: int):
-        optimizer = torch.optim.Adam(self.model.parameters(), lr=0.001)
+        optimizer = torch.optim.NAdam(self.model.parameters(), lr=0.001)
         
         for e in range(epoch):
             total_data_num = 0
@@ -73,6 +77,15 @@ class AutoencodeModel:
             all_encode_vals.append(encode_val.detach().numpy())
         all_encode_vals = np.vstack(all_encode_vals)
         return all_encode_vals
+    
+    def decode(self, decode_loader: DataLoader):
+        all_decode_vals = []
+        for decode_x in decode_loader:
+            decode_x = decode_x.float()
+            decode_val = self.model(decode_x).float()
+            all_decode_vals.append(decode_val.detach().numpy())
+        all_decode_vals = np.vstack(all_decode_vals)
+        return all_decode_vals
 
 class AutoencoderTrainTest:
     def __init__(self, model_name: str, encode_dim: int, input_shape: dict):
@@ -101,3 +114,11 @@ class AutoencoderTrainTest:
             encode_val = self.all_models[cluster_id].encode(data_loader)
             all_encode_vals[f"cluster{cluster_id}"] = encode_val
         return all_encode_vals
+    
+    def decode(self, decode_dataset: dict):
+        all_decode_vals = {}
+        for cluster_id in decode_dataset.keys():
+            data_loader = decode_dataset[cluster_id]
+            decode_val = self.all_models[cluster_id].decode(data_loader)
+            all_decode_vals[f"cluster{cluster_id}"] = decode_val
+        return all_decode_vals

@@ -15,7 +15,7 @@ def _save_accuracy(all_label, all_pred, model_name, train_num):
     save_dir = f"result/target cluster split/"
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
-    file_name = f"{model_name}_with_wa_mean_accuracy.csv"
+    file_name = f"{model_name}_encode_mean_accuracy.csv"
     file_full_path = save_dir + file_name
     all_r2, all_mse = [], []
     for cluster_id in all_label.keys():
@@ -35,24 +35,27 @@ def _save_accuracy(all_label, all_pred, model_name, train_num):
 
 def _one_cluster_model(model_name, train_num, input_dt, label_dt, save_preds=False):
     cluster_id = 0
+    compose_data = False
     data_path = "data/split-data/single/"
+
     compose_path = f"{data_path}tl-cal-{train_num}/split-{cluster_id}/"
     save_name = f"cmaq_id-{train_num}"
     train_test_data_id = get_in_clusters(data_path, train_num)
-    near_station_data = NearStationData(input_dt, label_dt, train_test_data_id, cluster_id, compose_path, False, ["cmaq_id"], True)
-    autoencoder_train_test = AutoencoderTrainTest("CNN", 2, near_station_data.input_shape)
+    near_station_data = NearStationData(input_dt, label_dt, train_test_data_id, cluster_id, compose_path, compose_data, ["cmaq_id"], True)
+    autoencoder_train_test = AutoencoderTrainTest("CNN", 4, near_station_data.input_shape)
     autoencode_train_dt, autoencode_valid_dt = near_station_data.autoencode_data_convert_loader()
-    autoencoder_train_test.train(autoencode_train_dt, 10)
+    autoencoder_train_test.train(autoencode_train_dt, 20)
     train_encode = autoencoder_train_test.encode(autoencode_train_dt)
     valid_encode = autoencoder_train_test.encode(autoencode_valid_dt)
-
-    # model_train_test = TrainTest(model_name)
-    # model_train_test.train(near_station_data.train_dt)
-    # all_pred, all_label = model_train_test.predict(near_station_data.valid_dt)
-    # if save_preds:
-    #     _save_split_results(all_pred, model_name, save_name)
-    # else:
-    #     _save_accuracy(all_label, all_pred, model_name, train_num)
+    train_dt = {c:{"input":train_encode[c], "label":near_station_data.train_dt[cluster_id]["label"]} for c in train_encode.keys()}
+    valid_dt = {c:{"input":valid_encode[c], "label":near_station_data.valid_dt[cluster_id]["label"]} for c in valid_encode.keys()}
+    model_train_test = TrainTest(model_name)
+    model_train_test.train(train_dt)
+    all_pred, all_label = model_train_test.predict(valid_dt)
+    if save_preds:
+        _save_split_results(all_pred, model_name, save_name)
+    else:
+        _save_accuracy(all_label, all_pred, model_name, train_num)
 
 if __name__=='__main__':
     model_name = "GBM"

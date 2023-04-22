@@ -314,12 +314,12 @@ class NearStationData:
         self.data_path = data_path
         self.compose_data = compose_data
         self.exclude_cols = exclude_cols
-        self.split_train_valid_cmaq()
+        self._split_train_valid_cmaq()
         if normalize:
             self._normalize_train_valid()
         self._allocate_near_data()
 
-    def split_train_valid_cmaq(self):
+    def _split_train_valid_cmaq(self):
         self.train_dt, self.valid_dt = {}, {}
         set_index = self.train_valid_data_id[self.cluster_id]
         train_index, valid_index = cluster_train_valid_index(set_index)
