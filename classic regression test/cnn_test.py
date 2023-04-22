@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from data_process.spatial_validation import get_clusters, get_in_clusters
 from data_process.data import MultipleData, tag_names
-from model.neuralnet import TrainTest
+from model.nn_regressor import RegressionTrainTest
 
 def _extract_center_target(target_data: np.ndarray):
     height, width = target_data.shape[1], target_data.shape[2]
@@ -36,7 +36,7 @@ if __name__=='__main__':
 
     multiple_data = MultipleData(input_dt, label_dt, tag_names[:-1], grid_width, train_test_data_id, id_type, True)
     multiple_data.data_convert_loader()
-    model_train_test = TrainTest(model_name, multiple_data.input_dim)
+    model_train_test = RegressionTrainTest(model_name, multiple_data.input_dim)
     model_train_test.train(multiple_data.train_dt, 25)
     all_pred = model_train_test.predict(multiple_data.valid_dt)
 
